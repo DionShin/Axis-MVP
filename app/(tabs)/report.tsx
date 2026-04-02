@@ -33,8 +33,8 @@ const barStyles = StyleSheet.create({
 
 export default function ReportScreen() {
   const [period, setPeriod] = useState<Period>('weekly');
-  const { routines, todayChecks } = useRoutineStore();
-  const insight = generateInsight(routines, todayChecks, period);
+  const { routines, checks } = useRoutineStore();
+  const insight = generateInsight(routines, checks, period);
 
   return (
     <SafeAreaView style={styles.container}>

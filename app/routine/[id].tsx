@@ -3,6 +3,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography, radius } from '../../src/theme';
 import { useRoutineStore } from '../../src/store/routineStore';
+import { totalCheckedDays, bestStreak } from '../../src/utils/history';
 
 function formatDate(iso: string | null) {
   if (!iso) return '—';
@@ -43,7 +44,7 @@ const timelineStyles = StyleSheet.create({
 
 export default function RoutineDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { routines, archiveRoutine, restartRoutine, todayChecks } = useRoutineStore();
+  const { routines, archiveRoutine, restartRoutine, checks } = useRoutineStore();
   const routine = routines.find((r) => r.id === id);
 
   if (!routine) {
@@ -62,7 +63,8 @@ export default function RoutineDetail() {
   }
 
   const isArchived = routine.status === 'archived';
-  const checkedDays = todayChecks.filter((c) => c.routine_id === id && c.checked).length;
+  const totalDays = totalCheckedDays(id, checks);
+  const streak = bestStreak(id, checks);
 
   const handleArchive = () => {
     Alert.alert(
@@ -124,12 +126,12 @@ export default function RoutineDetail() {
         <Text style={styles.sectionLabel}>Stats</Text>
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{checkedDays}</Text>
-            <Text style={styles.statLabel}>Checked today</Text>
+            <Text style={styles.statValue}>{totalDays}</Text>
+            <Text style={styles.statLabel}>Total days</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{routine.frequency_type === 'daily' ? 'Daily' : `${routine.frequency_value}x/wk`}</Text>
-            <Text style={styles.statLabel}>Frequency</Text>
+            <Text style={styles.statValue}>{streak}</Text>
+            <Text style={styles.statLabel}>Best streak</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{routine.category.replace('_', ' ')}</Text>

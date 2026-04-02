@@ -4,11 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography, radius } from '../../src/theme';
 import { useOnboardingStore } from '../../src/store/onboardingStore';
 import { useAuthStore } from '../../src/store/authStore';
+import { useRoutineStore } from '../../src/store/routineStore';
 import {
   requestNotificationPermission,
   scheduleNightlyReminder,
 } from '../../src/lib/notifications';
-import { upsertProfile } from '../../src/lib/supabase/db';
+import { upsertProfile, insertRoutine } from '../../src/lib/supabase/db';
+import { DEFAULT_ROUTINES } from '../../src/constants';
 
 const TIME_OPTIONS = [
   { label: '8:00 PM', value: '20:00' },
@@ -19,8 +21,9 @@ const TIME_OPTIONS = [
 ];
 
 export default function OnboardingReminder() {
-  const { reminderTime, setReminderTime, setCompleted } = useOnboardingStore();
+  const { reminderTime, setReminderTime, setCompleted, selectedRoutineNames, goalCategory } = useOnboardingStore();
   const { user, setUser } = useAuthStore();
+  const { loadRoutines } = useRoutineStore();
 
   const handleFinish = async () => {
     if (reminderTime !== 'skip') {
@@ -28,6 +31,17 @@ export default function OnboardingReminder() {
       if (granted) await scheduleNightlyReminder(reminderTime);
     }
     if (user) {
+      // Save selected routines to DB
+      const categoryMap = Object.fromEntries(
+        DEFAULT_ROUTINES.map((r) => [r.name, r.category])
+      );
+      await Promise.all(
+        selectedRoutineNames.map((name) =>
+          insertRoutine(user.id, name, categoryMap[name] ?? goalCategory ?? 'life_habits')
+        )
+      );
+      await loadRoutines(user.id);
+
       await upsertProfile({ id: user.id, onboarding_completed: true });
       setUser({ ...user, onboarding_completed: true });
     }

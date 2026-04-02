@@ -7,20 +7,38 @@ import { useRoutineStore } from '../src/store/routineStore';
 import { fetchProfile } from '../src/lib/supabase/db';
 import { toDateString } from '../src/lib/date';
 
+function ninetyDaysAgo(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 90);
+  return toDateString(d);
+}
+
+async function loadUserData(
+  userId: string,
+  loaders: {
+    loadRoutines: (id: string) => Promise<void>;
+    loadTodayChecks: (id: string, today: string) => Promise<void>;
+    loadChecks: (id: string, start: string, end: string) => Promise<void>;
+  }
+) {
+  const today = toDateString(new Date());
+  await Promise.all([
+    loaders.loadRoutines(userId),
+    loaders.loadTodayChecks(userId, today),
+    loaders.loadChecks(userId, ninetyDaysAgo(), today),
+  ]);
+}
+
 export default function RootLayout() {
   const { setUser, setLoading } = useAuthStore();
-  const { loadRoutines, loadTodayChecks } = useRoutineStore();
+  const { loadRoutines, loadTodayChecks, loadChecks } = useRoutineStore();
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         const profile = await fetchProfile(session.user.id);
         setUser(profile);
-        const today = toDateString(new Date());
-        await Promise.all([
-          loadRoutines(session.user.id),
-          loadTodayChecks(session.user.id, today),
-        ]);
+        await loadUserData(session.user.id, { loadRoutines, loadTodayChecks, loadChecks });
       }
       setLoading(false);
     });
@@ -31,11 +49,7 @@ export default function RootLayout() {
       if (session?.user) {
         const profile = await fetchProfile(session.user.id);
         setUser(profile);
-        const today = toDateString(new Date());
-        await Promise.all([
-          loadRoutines(session.user.id),
-          loadTodayChecks(session.user.id, today),
-        ]);
+        await loadUserData(session.user.id, { loadRoutines, loadTodayChecks, loadChecks });
         if (event === 'SIGNED_IN') {
           const onboardingDone = profile?.onboarding_completed ?? false;
           router.replace(onboardingDone ? '/(tabs)/home' : '/onboarding/intro');

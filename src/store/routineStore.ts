@@ -5,16 +5,22 @@ import {
   insertRoutine,
   patchRoutine,
   fetchTodayChecks,
+  fetchChecksForRange,
   upsertCheck,
 } from '../lib/supabase/db';
 
 interface RoutineState {
   routines: Routine[];
+  // today's checks — used by home screen for fast check/uncheck
   todayChecks: RoutineCheck[];
+  // historical checks (90 days) — used by history & report screens
+  checks: RoutineCheck[];
   setRoutines: (routines: Routine[]) => void;
   setTodayChecks: (checks: RoutineCheck[]) => void;
+  setChecks: (checks: RoutineCheck[]) => void;
   loadRoutines: (userId: string) => Promise<void>;
   loadTodayChecks: (userId: string, today: string) => Promise<void>;
+  loadChecks: (userId: string, startDate: string, endDate: string) => Promise<void>;
   addRoutine: (userId: string, name: string, category: string) => Promise<void>;
   updateRoutine: (id: string, patch: Partial<Routine>) => Promise<void>;
   archiveRoutine: (id: string) => Promise<void>;
@@ -25,9 +31,11 @@ interface RoutineState {
 export const useRoutineStore = create<RoutineState>((set, get) => ({
   routines: [],
   todayChecks: [],
+  checks: [],
 
   setRoutines: (routines) => set({ routines }),
   setTodayChecks: (todayChecks) => set({ todayChecks }),
+  setChecks: (checks) => set({ checks }),
 
   loadRoutines: async (userId) => {
     const routines = await fetchRoutines(userId);
@@ -35,8 +43,20 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
   },
 
   loadTodayChecks: async (userId, today) => {
-    const checks = await fetchTodayChecks(userId, today);
-    set({ todayChecks: checks });
+    const todayChecks = await fetchTodayChecks(userId, today);
+    set({ todayChecks });
+  },
+
+  loadChecks: async (userId, startDate, endDate) => {
+    const checks = await fetchChecksForRange(userId, startDate, endDate);
+    // merge today's checks so they're always current
+    const today = new Date().toISOString().split('T')[0];
+    const todayChecks = get().todayChecks;
+    const merged = [
+      ...checks.filter((c) => c.date !== today),
+      ...todayChecks,
+    ];
+    set({ checks: merged });
   },
 
   addRoutine: async (userId, name, category) => {
@@ -98,6 +118,7 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
     const existing = get().todayChecks.find((c) => c.routine_id === routineId);
     const newChecked = existing ? !existing.checked : true;
 
+    // optimistic update — todayChecks
     if (existing) {
       set((s) => ({
         todayChecks: s.todayChecks.map((c) =>
@@ -118,11 +139,26 @@ export const useRoutineStore = create<RoutineState>((set, get) => ({
 
     const saved = await upsertCheck(userId, routineId, today, newChecked);
     if (saved) {
+      // update todayChecks
       set((s) => ({
         todayChecks: s.todayChecks.map((c) =>
           c.routine_id === routineId && c.date === today ? saved : c
         ),
       }));
+      // also keep checks in sync
+      set((s) => {
+        const alreadyInChecks = s.checks.some(
+          (c) => c.routine_id === routineId && c.date === today
+        );
+        if (alreadyInChecks) {
+          return {
+            checks: s.checks.map((c) =>
+              c.routine_id === routineId && c.date === today ? saved : c
+            ),
+          };
+        }
+        return { checks: [...s.checks, saved] };
+      });
     }
   },
 }));

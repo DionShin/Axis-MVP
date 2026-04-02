@@ -44,7 +44,7 @@ const heatStyles = StyleSheet.create({
 
 export default function HistoryScreen() {
   const [mode, setMode] = useState<ViewMode>('weekly');
-  const { routines, todayChecks } = useRoutineStore();
+  const { routines, checks } = useRoutineStore();
 
   const todayStr = today();
   const now = new Date();
@@ -100,7 +100,7 @@ export default function HistoryScreen() {
                   {week.days.map((date) => (
                     <HeatmapCell
                       key={date}
-                      level={heatmapLevel(date, activeRoutines.length, todayChecks)}
+                      level={heatmapLevel(date, activeRoutines.length, checks)}
                       isToday={date === todayStr}
                     />
                   ))}
@@ -121,7 +121,7 @@ export default function HistoryScreen() {
                   ) : (
                     <HeatmapCell
                       key={date}
-                      level={heatmapLevel(date, activeRoutines.length, todayChecks)}
+                      level={heatmapLevel(date, activeRoutines.length, checks)}
                       isToday={date === todayStr}
                     />
                   )
@@ -148,9 +148,9 @@ export default function HistoryScreen() {
               const rate = completionRate(routine.id, mode === 'weekly'
                 ? weeks.flatMap((w) => w.days)
                 : monthDays,
-                todayChecks
+                checks
               );
-              const streak = bestStreak(routine.id, todayChecks);
+              const streak = bestStreak(routine.id, checks);
               return (
                 <Pressable
                   key={routine.id}
