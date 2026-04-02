@@ -3,10 +3,12 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography, radius } from '../../src/theme';
 import { useOnboardingStore } from '../../src/store/onboardingStore';
+import { useAuthStore } from '../../src/store/authStore';
 import {
   requestNotificationPermission,
   scheduleNightlyReminder,
 } from '../../src/lib/notifications';
+import { upsertProfile } from '../../src/lib/supabase/db';
 
 const TIME_OPTIONS = [
   { label: '8:00 PM', value: '20:00' },
@@ -18,11 +20,16 @@ const TIME_OPTIONS = [
 
 export default function OnboardingReminder() {
   const { reminderTime, setReminderTime, setCompleted } = useOnboardingStore();
+  const { user, setUser } = useAuthStore();
 
   const handleFinish = async () => {
     if (reminderTime !== 'skip') {
       const granted = await requestNotificationPermission();
       if (granted) await scheduleNightlyReminder(reminderTime);
+    }
+    if (user) {
+      await upsertProfile({ id: user.id, onboarding_completed: true });
+      setUser({ ...user, onboarding_completed: true });
     }
     setCompleted(true);
     router.replace('/(tabs)/home');

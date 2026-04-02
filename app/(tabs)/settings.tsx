@@ -3,6 +3,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { colors, spacing, typography, radius } from '../../src/theme';
 import { useOnboardingStore } from '../../src/store/onboardingStore';
+import { useAuthStore } from '../../src/store/authStore';
+import { useRoutineStore } from '../../src/store/routineStore';
+import { supabase } from '../../src/lib/supabase';
 import {
   scheduleNightlyReminder,
   cancelNightlyReminder,
@@ -42,6 +45,8 @@ function SettingRow({
 
 export default function SettingsScreen() {
   const { reminderTime, setReminderTime } = useOnboardingStore();
+  const { setUser } = useAuthStore();
+  const { setRoutines, setTodayChecks } = useRoutineStore();
   const [notifEnabled, setNotifEnabled] = useState(reminderTime !== 'skip');
 
   const handleToggleNotif = async (value: boolean) => {
@@ -130,7 +135,16 @@ export default function SettingsScreen() {
             onPress={() =>
               Alert.alert('Sign out', 'Sign out of your account?', [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Sign out', style: 'destructive', onPress: () => {} },
+                {
+                  text: 'Sign out',
+                  style: 'destructive',
+                  onPress: async () => {
+                    await supabase.auth.signOut();
+                    setUser(null);
+                    setRoutines([]);
+                    setTodayChecks([]);
+                  },
+                },
               ])
             }
           />

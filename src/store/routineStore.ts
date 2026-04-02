@@ -1,95 +1,128 @@
 import { create } from 'zustand';
 import { Routine, RoutineCheck } from '../types';
+import {
+  fetchRoutines,
+  insertRoutine,
+  patchRoutine,
+  fetchTodayChecks,
+  upsertCheck,
+} from '../lib/supabase/db';
 
 interface RoutineState {
   routines: Routine[];
   todayChecks: RoutineCheck[];
   setRoutines: (routines: Routine[]) => void;
   setTodayChecks: (checks: RoutineCheck[]) => void;
-  addRoutine: (name: string, category: string) => void;
-  updateRoutine: (id: string, patch: Partial<Routine>) => void;
-  archiveRoutine: (id: string) => void;
-  restartRoutine: (id: string) => void;
-  toggleCheck: (routineId: string) => void;
+  loadRoutines: (userId: string) => Promise<void>;
+  loadTodayChecks: (userId: string, today: string) => Promise<void>;
+  addRoutine: (userId: string, name: string, category: string) => Promise<void>;
+  updateRoutine: (id: string, patch: Partial<Routine>) => Promise<void>;
+  archiveRoutine: (id: string) => Promise<void>;
+  restartRoutine: (id: string) => Promise<void>;
+  toggleCheck: (userId: string, routineId: string, today: string) => Promise<void>;
 }
 
-function makeId() {
-  return Math.random().toString(36).slice(2, 10);
-}
-
-export const useRoutineStore = create<RoutineState>((set) => ({
+export const useRoutineStore = create<RoutineState>((set, get) => ({
   routines: [],
   todayChecks: [],
 
   setRoutines: (routines) => set({ routines }),
   setTodayChecks: (todayChecks) => set({ todayChecks }),
 
-  addRoutine: (name, category) =>
-    set((state) => {
-      const now = new Date().toISOString();
-      const routine: Routine = {
-        id: makeId(),
-        user_id: '',
-        name,
-        category,
-        frequency_type: 'daily',
-        frequency_value: 1,
-        preferred_time: null,
-        status: 'active',
-        created_at: now,
-        archived_at: null,
-        restarted_at: null,
-      };
-      return { routines: [...state.routines, routine] };
-    }),
+  loadRoutines: async (userId) => {
+    const routines = await fetchRoutines(userId);
+    set({ routines });
+  },
 
-  updateRoutine: (id, patch) =>
+  loadTodayChecks: async (userId, today) => {
+    const checks = await fetchTodayChecks(userId, today);
+    set({ todayChecks: checks });
+  },
+
+  addRoutine: async (userId, name, category) => {
+    const tempId = `temp-${Math.random().toString(36).slice(2, 8)}`;
+    const now = new Date().toISOString();
+    const temp: Routine = {
+      id: tempId,
+      user_id: userId,
+      name,
+      category,
+      frequency_type: 'daily',
+      frequency_value: 1,
+      preferred_time: null,
+      status: 'active',
+      created_at: now,
+      archived_at: null,
+      restarted_at: null,
+    };
+    set((state) => ({ routines: [...state.routines, temp] }));
+
+    const created = await insertRoutine(userId, name, category);
+    if (created) {
+      set((state) => ({
+        routines: state.routines.map((r) => (r.id === tempId ? created : r)),
+      }));
+    }
+  },
+
+  updateRoutine: async (id, patch) => {
     set((state) => ({
       routines: state.routines.map((r) => (r.id === id ? { ...r, ...patch } : r)),
-    })),
+    }));
+    await patchRoutine(id, patch);
+  },
 
-  archiveRoutine: (id) =>
+  archiveRoutine: async (id) => {
+    const archived_at = new Date().toISOString();
+    set((state) => ({
+      routines: state.routines.map((r) =>
+        r.id === id ? { ...r, status: 'archived', archived_at } : r
+      ),
+    }));
+    await patchRoutine(id, { status: 'archived', archived_at });
+  },
+
+  restartRoutine: async (id) => {
+    const restarted_at = new Date().toISOString();
     set((state) => ({
       routines: state.routines.map((r) =>
         r.id === id
-          ? { ...r, status: 'archived', archived_at: new Date().toISOString() }
+          ? { ...r, status: 'active', archived_at: null, restarted_at }
           : r
       ),
-    })),
+    }));
+    await patchRoutine(id, { status: 'active', archived_at: null, restarted_at });
+  },
 
-  restartRoutine: (id) =>
-    set((state) => ({
-      routines: state.routines.map((r) =>
-        r.id === id
-          ? {
-              ...r,
-              status: 'active',
-              archived_at: null,
-              restarted_at: new Date().toISOString(),
-            }
-          : r
-      ),
-    })),
+  toggleCheck: async (userId, routineId, today) => {
+    const existing = get().todayChecks.find((c) => c.routine_id === routineId);
+    const newChecked = existing ? !existing.checked : true;
 
-  toggleCheck: (routineId) =>
-    set((state) => {
-      const today = new Date().toISOString().split('T')[0];
-      const existing = state.todayChecks.find((c) => c.routine_id === routineId);
-      if (existing) {
-        return {
-          todayChecks: state.todayChecks.map((c) =>
-            c.routine_id === routineId ? { ...c, checked: !c.checked } : c
-          ),
-        };
-      }
-      const newCheck: RoutineCheck = {
+    if (existing) {
+      set((s) => ({
+        todayChecks: s.todayChecks.map((c) =>
+          c.routine_id === routineId ? { ...c, checked: newChecked } : c
+        ),
+      }));
+    } else {
+      const optimistic: RoutineCheck = {
         id: `${routineId}-${today}`,
-        user_id: '',
+        user_id: userId,
         routine_id: routineId,
         date: today,
         checked: true,
         checked_at: new Date().toISOString(),
       };
-      return { todayChecks: [...state.todayChecks, newCheck] };
-    }),
+      set((s) => ({ todayChecks: [...s.todayChecks, optimistic] }));
+    }
+
+    const saved = await upsertCheck(userId, routineId, today, newChecked);
+    if (saved) {
+      set((s) => ({
+        todayChecks: s.todayChecks.map((c) =>
+          c.routine_id === routineId && c.date === today ? saved : c
+        ),
+      }));
+    }
+  },
 }));

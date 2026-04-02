@@ -3,7 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { colors, spacing, typography, radius } from '../../src/theme';
 import { useRoutineStore } from '../../src/store/routineStore';
-import { useOnboardingStore } from '../../src/store/onboardingStore';
+import { useAuthStore } from '../../src/store/authStore';
 import { daysSinceLastCheck } from '../../src/utils/report';
 import { RECOVERY_TRIGGER_DAYS } from '../../src/constants';
 
@@ -32,27 +32,12 @@ function formatDate(date: Date) {
 
 export default function HomeScreen() {
   const { routines, todayChecks, toggleCheck } = useRoutineStore();
-  const { selectedRoutineNames } = useOnboardingStore();
+  const { user } = useAuthStore();
 
   const weekDays = getWeekDays();
   const today = new Date().toISOString().split('T')[0];
 
-  // Use onboarding routines as temp data until DB is connected
-  const displayRoutines = routines.length > 0
-    ? routines.filter((r) => r.status === 'active')
-    : selectedRoutineNames.map((name, i) => ({
-        id: `temp-${i}`,
-        name,
-        status: 'active' as const,
-        user_id: '',
-        category: '',
-        frequency_type: 'daily' as const,
-        frequency_value: 1,
-        preferred_time: null,
-        created_at: today,
-        archived_at: null,
-        restarted_at: null,
-      }));
+  const displayRoutines = routines.filter((r) => r.status === 'active');
 
   const checkedIds = new Set(
     todayChecks.filter((c) => c.checked).map((c) => c.routine_id)
@@ -114,7 +99,7 @@ export default function HomeScreen() {
                 <Pressable
                   key={routine.id}
                   style={[styles.routineCard, checked && styles.routineCardChecked]}
-                  onPress={() => toggleCheck(routine.id)}
+                  onPress={() => user && toggleCheck(user.id, routine.id, today)}
                 >
                   <View style={[styles.checkCircle, checked && styles.checkCircleChecked]}>
                     {checked && <Text style={styles.checkMark}>✓</Text>}

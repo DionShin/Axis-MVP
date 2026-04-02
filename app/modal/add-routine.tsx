@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography, radius } from '../../src/theme';
 import { useRoutineStore } from '../../src/store/routineStore';
+import { useAuthStore } from '../../src/store/authStore';
 import { DEFAULT_ROUTINES } from '../../src/constants';
 
 const CATEGORIES = ['exercise', 'study', 'productivity', 'life_habits', 'self_improvement'];
@@ -17,13 +18,14 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export default function AddRoutineModal() {
   const { addRoutine } = useRoutineStore();
+  const { user } = useAuthStore();
   const [name, setName] = useState('');
   const [category, setCategory] = useState('life_habits');
 
   const handleAdd = () => {
     const trimmed = name.trim();
-    if (!trimmed) return;
-    addRoutine(trimmed, category);
+    if (!trimmed || !user) return;
+    addRoutine(user.id, trimmed, category);
     router.back();
   };
 
