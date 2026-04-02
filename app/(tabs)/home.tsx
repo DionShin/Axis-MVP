@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { colors, spacing, typography, radius } from '../../src/theme';
 import { useRoutineStore } from '../../src/store/routineStore';
 import { useOnboardingStore } from '../../src/store/onboardingStore';
+import { daysSinceLastCheck } from '../../src/utils/report';
+import { RECOVERY_TRIGGER_DAYS } from '../../src/constants';
 
 const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -57,6 +59,7 @@ export default function HomeScreen() {
   );
   const checkedCount = checkedIds.size;
   const totalCount = displayRoutines.length;
+  const showRecovery = daysSinceLastCheck(todayChecks) >= RECOVERY_TRIGGER_DAYS && totalCount > 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -124,6 +127,14 @@ export default function HomeScreen() {
             })
           )}
         </View>
+
+        {/* Recovery CTA */}
+        {showRecovery && (
+          <Pressable style={styles.recoveryBanner} onPress={() => router.push('/modal/recovery')}>
+            <Text style={styles.recoveryTitle}>Been a while?</Text>
+            <Text style={styles.recoveryBody}>Tap to restart gently — no guilt.</Text>
+          </Pressable>
+        )}
 
         {/* Add routine CTA */}
         <Pressable style={styles.addButton} onPress={() => router.push('/modal/add-routine')}>
@@ -263,6 +274,26 @@ const styles = StyleSheet.create({
   },
   emptySubText: {
     ...typography.body,
+    color: colors.textSecondary,
+  },
+  recoveryBanner: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+    padding: spacing.md,
+  },
+  recoveryTitle: {
+    ...typography.body,
+    color: colors.text,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  recoveryBody: {
+    ...typography.caption,
     color: colors.textSecondary,
   },
   addButton: {
