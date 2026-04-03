@@ -1,20 +1,31 @@
-export const colors = {
+export const lightColors = {
   background: '#ffffff',
-  backgroundDark: '#0f0f0f',
   surface: '#f7f7f7',
-  surfaceDark: '#1a1a1a',
   border: '#e5e5e5',
-  borderDark: '#2a2a2a',
   text: '#1a1a1a',
-  textDark: '#f0f0f0',
   textSecondary: '#666666',
-  textSecondaryDark: '#999999',
   primary: '#1a1a1a',
-  primaryDark: '#f0f0f0',
   accent: '#4a4a4a',
   success: '#2d6a4f',
   muted: '#cccccc',
 };
+
+export const darkColors = {
+  background: '#0f0f0f',
+  surface: '#1a1a1a',
+  border: '#2a2a2a',
+  text: '#f0f0f0',
+  textSecondary: '#999999',
+  primary: '#f0f0f0',
+  accent: '#aaaaaa',
+  success: '#52b788',
+  muted: '#555555',
+};
+
+// backward compat — screens import this; migrated screens use useColors()
+export const colors = lightColors;
+
+export type AppColors = typeof lightColors;
 
 export const spacing = {
   xs: 4,

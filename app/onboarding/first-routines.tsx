@@ -2,11 +2,14 @@ import { View, Text, StyleSheet, Pressable, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, typography, radius } from '../../src/theme';
+import { spacing, typography, radius, AppColors } from '../../src/theme';
+import { useColors } from '../../src/hooks/useColors';
 import { useOnboardingStore } from '../../src/store/onboardingStore';
 import { DEFAULT_ROUTINES, MAX_ONBOARDING_ROUTINES } from '../../src/constants';
 
 export default function OnboardingFirstRoutines() {
+  const c = useColors();
+  const styles = makeStyles(c);
   const { selectedRoutineNames, toggleRoutine } = useOnboardingStore();
   const [customInput, setCustomInput] = useState('');
   const canContinue = selectedRoutineNames.length > 0;
@@ -49,7 +52,7 @@ export default function OnboardingFirstRoutines() {
         <TextInput
           style={styles.input}
           placeholder="Add your own routine..."
-          placeholderTextColor={colors.textSecondary}
+          placeholderTextColor={c.textSecondary}
           value={customInput}
           onChangeText={setCustomInput}
           onSubmitEditing={handleAddCustom}
@@ -80,119 +83,42 @@ export default function OnboardingFirstRoutines() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xl,
-  },
-  header: {
-    marginTop: spacing.xl,
-    marginBottom: spacing.lg,
-  },
-  heading: {
-    ...typography.h2,
-    color: colors.text,
-    marginBottom: spacing.xs,
-  },
-  sub: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-  list: {
-    gap: spacing.sm,
-  },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    gap: spacing.md,
-  },
-  itemSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
-  },
-  itemDisabled: {
-    opacity: 0.4,
-  },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 1.5,
-    borderColor: colors.textSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxSelected: {
-    borderColor: '#fff',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  checkmark: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  itemText: {
-    ...typography.body,
-    color: colors.text,
-  },
-  itemTextSelected: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  customRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.lg,
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    ...typography.body,
-    color: colors.text,
-    backgroundColor: colors.surface,
-  },
-  addBtn: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.md,
-    justifyContent: 'center',
-  },
-  addBtnDisabled: {
-    backgroundColor: colors.muted,
-  },
-  addBtnText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  maxNote: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.sm,
-  },
-  button: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    backgroundColor: colors.muted,
-  },
-  buttonText: {
-    ...typography.body,
-    color: '#fff',
-    fontWeight: '600',
-  },
-});
+function makeStyles(c: AppColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background, paddingHorizontal: spacing.xl, paddingBottom: spacing.xl },
+    header: { marginTop: spacing.xl, marginBottom: spacing.lg },
+    heading: { ...typography.h2, color: c.text, marginBottom: spacing.xs },
+    sub: { ...typography.body, color: c.textSecondary },
+    list: { gap: spacing.sm },
+    item: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingVertical: spacing.md, paddingHorizontal: spacing.md,
+      borderRadius: radius.md, borderWidth: 1, borderColor: c.border,
+      backgroundColor: c.surface, gap: spacing.md,
+    },
+    itemSelected: { borderColor: c.primary, backgroundColor: c.primary },
+    itemDisabled: { opacity: 0.4 },
+    checkbox: {
+      width: 22, height: 22, borderRadius: 11,
+      borderWidth: 1.5, borderColor: c.textSecondary,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    checkboxSelected: { borderColor: c.background, backgroundColor: 'rgba(255,255,255,0.2)' },
+    checkmark: { color: c.background, fontSize: 12, fontWeight: '700' },
+    itemText: { ...typography.body, color: c.text },
+    itemTextSelected: { color: c.background, fontWeight: '600' },
+    customRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
+    input: {
+      flex: 1, borderWidth: 1, borderColor: c.border, borderRadius: radius.md,
+      paddingVertical: spacing.sm, paddingHorizontal: spacing.md,
+      ...typography.body, color: c.text, backgroundColor: c.surface,
+    },
+    addBtn: { backgroundColor: c.primary, paddingHorizontal: spacing.lg, borderRadius: radius.md, justifyContent: 'center' },
+    addBtnDisabled: { backgroundColor: c.muted },
+    addBtnText: { color: c.background, fontWeight: '600' },
+    maxNote: { ...typography.caption, color: c.textSecondary, marginTop: spacing.sm },
+    button: { backgroundColor: c.primary, paddingVertical: spacing.md, borderRadius: radius.md, alignItems: 'center' },
+    buttonDisabled: { backgroundColor: c.muted },
+    buttonText: { ...typography.body, color: c.background, fontWeight: '600' },
+  });
+}

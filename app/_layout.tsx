@@ -1,6 +1,7 @@
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { useThemeStore } from '../src/store/themeStore';
 import { supabase } from '../src/lib/supabase';
 import { useAuthStore } from '../src/store/authStore';
 import { useRoutineStore } from '../src/store/routineStore';
@@ -31,6 +32,7 @@ async function loadUserData(
 
 export default function RootLayout() {
   const { setUser, setLoading } = useAuthStore();
+  const { darkMode } = useThemeStore();
   const { loadRoutines, loadTodayChecks, loadChecks } = useRoutineStore();
 
   useEffect(() => {
@@ -67,7 +69,7 @@ export default function RootLayout() {
 
   return (
     <>
-      <StatusBar style="auto" />
+      <StatusBar style={darkMode ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="auth" />

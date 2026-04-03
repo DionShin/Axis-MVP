@@ -1,7 +1,8 @@
 import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, typography, radius } from '../../src/theme';
+import { spacing, typography, radius, AppColors } from '../../src/theme';
+import { useColors } from '../../src/hooks/useColors';
 import { useRoutineStore } from '../../src/store/routineStore';
 import { totalCheckedDays, bestStreak } from '../../src/utils/history';
 
@@ -10,39 +11,21 @@ function formatDate(iso: string | null) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function TimelineRow({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function TimelineRow({ label, value, accent, c }: { label: string; value: string; accent?: boolean; c: AppColors }) {
   return (
-    <View style={timelineStyles.row}>
-      <View style={timelineStyles.dot} />
-      <View style={timelineStyles.content}>
-        <Text style={timelineStyles.label}>{label}</Text>
-        <Text style={[timelineStyles.value, accent && timelineStyles.valueAccent]}>{value}</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.md }}>
+      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.primary, marginTop: 6, marginRight: spacing.md }} />
+      <View style={{ flex: 1 }}>
+        <Text style={{ ...typography.caption, color: c.textSecondary, marginBottom: 2 }}>{label}</Text>
+        <Text style={[{ ...typography.body, color: c.text }, accent && { fontWeight: '600' }]}>{value}</Text>
       </View>
     </View>
   );
 }
 
-const timelineStyles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: spacing.md,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.primary,
-    marginTop: 6,
-    marginRight: spacing.md,
-  },
-  content: { flex: 1 },
-  label: { ...typography.caption, color: colors.textSecondary, marginBottom: 2 },
-  value: { ...typography.body, color: colors.text },
-  valueAccent: { fontWeight: '600' },
-});
-
 export default function RoutineDetail() {
+  const c = useColors();
+  const styles = makeStyles(c);
   const { id } = useLocalSearchParams<{ id: string }>();
   const { routines, archiveRoutine, restartRoutine, checks } = useRoutineStore();
   const routine = routines.find((r) => r.id === id);
@@ -72,21 +55,9 @@ export default function RoutineDetail() {
       `Archive "${routine.name}"? You can restart it anytime.`,
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Archive',
-          style: 'destructive',
-          onPress: () => {
-            archiveRoutine(id);
-            router.back();
-          },
-        },
+        { text: 'Archive', style: 'destructive', onPress: () => { archiveRoutine(id); router.back(); } },
       ]
     );
-  };
-
-  const handleRestart = () => {
-    restartRoutine(id);
-    router.back();
   };
 
   return (
@@ -114,13 +85,9 @@ export default function RoutineDetail() {
 
         <Text style={styles.sectionLabel}>Timeline</Text>
         <View style={styles.timeline}>
-          <TimelineRow label="Created" value={formatDate(routine.created_at)} accent />
-          {routine.restarted_at && (
-            <TimelineRow label="Restarted" value={formatDate(routine.restarted_at)} />
-          )}
-          {routine.archived_at && (
-            <TimelineRow label="Archived" value={formatDate(routine.archived_at)} />
-          )}
+          <TimelineRow label="Created" value={formatDate(routine.created_at)} accent c={c} />
+          {routine.restarted_at && <TimelineRow label="Restarted" value={formatDate(routine.restarted_at)} c={c} />}
+          {routine.archived_at && <TimelineRow label="Archived" value={formatDate(routine.archived_at)} c={c} />}
         </View>
 
         <Text style={styles.sectionLabel}>Stats</Text>
@@ -142,7 +109,7 @@ export default function RoutineDetail() {
 
       <View style={styles.footer}>
         {isArchived ? (
-          <Pressable style={styles.restartBtn} onPress={handleRestart}>
+          <Pressable style={styles.restartBtn} onPress={() => { restartRoutine(id); router.back(); }}>
             <Text style={styles.restartBtnText}>Restart routine</Text>
           </Pressable>
         ) : (
@@ -155,138 +122,44 @@ export default function RoutineDetail() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  back: {
-    ...typography.body,
-    color: colors.text,
-    fontWeight: '500',
-  },
-  editBtn: {
-    ...typography.body,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  scroll: {
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xxl,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xl,
-  },
-  name: {
-    ...typography.h2,
-    color: colors.text,
-    flex: 1,
-    marginRight: spacing.md,
-  },
-  badge: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.sm,
-  },
-  badgeArchived: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  badgeText: {
-    ...typography.small,
-    color: '#fff',
-    fontWeight: '600',
-  },
-  badgeTextArchived: {
-    color: colors.textSecondary,
-  },
-  sectionLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: spacing.md,
-    marginTop: spacing.lg,
-  },
-  timeline: {
-    paddingLeft: spacing.sm,
-    borderLeftWidth: 1,
-    borderLeftColor: colors.border,
-    marginLeft: spacing.xs,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    alignItems: 'center',
-  },
-  statValue: {
-    ...typography.h3,
-    color: colors.text,
-    marginBottom: 2,
-    textTransform: 'capitalize',
-  },
-  statLabel: {
-    ...typography.small,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  footer: {
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xl,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  archiveBtn: {
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-  },
-  archiveBtnText: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-  restartBtn: {
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-  },
-  restartBtnText: {
-    ...typography.body,
-    color: '#fff',
-    fontWeight: '600',
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  notFound: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-});
+function makeStyles(c: AppColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    header: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.md,
+    },
+    back: { ...typography.body, color: c.text, fontWeight: '500' },
+    editBtn: { ...typography.body, color: c.primary, fontWeight: '600' },
+    scroll: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl },
+    titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xl },
+    name: { ...typography.h2, color: c.text, flex: 1, marginRight: spacing.md },
+    badge: { backgroundColor: c.primary, paddingVertical: spacing.xs, paddingHorizontal: spacing.sm, borderRadius: radius.sm },
+    badgeArchived: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
+    badgeText: { ...typography.small, color: c.background, fontWeight: '600' },
+    badgeTextArchived: { color: c.textSecondary },
+    sectionLabel: {
+      ...typography.caption, color: c.textSecondary,
+      textTransform: 'uppercase', letterSpacing: 0.8,
+      marginBottom: spacing.md, marginTop: spacing.lg,
+    },
+    timeline: { paddingLeft: spacing.sm, borderLeftWidth: 1, borderLeftColor: c.border, marginLeft: spacing.xs },
+    statsRow: { flexDirection: 'row', gap: spacing.sm },
+    statCard: {
+      flex: 1, backgroundColor: c.surface, borderRadius: radius.md,
+      borderWidth: 1, borderColor: c.border, padding: spacing.md, alignItems: 'center',
+    },
+    statValue: { ...typography.h3, color: c.text, marginBottom: 2, textTransform: 'capitalize' },
+    statLabel: { ...typography.small, color: c.textSecondary, textAlign: 'center' },
+    footer: {
+      paddingHorizontal: spacing.xl, paddingBottom: spacing.xl,
+      paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: c.border,
+    },
+    archiveBtn: { paddingVertical: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: c.border, alignItems: 'center' },
+    archiveBtnText: { ...typography.body, color: c.textSecondary },
+    restartBtn: { paddingVertical: spacing.md, borderRadius: radius.md, backgroundColor: c.primary, alignItems: 'center' },
+    restartBtnText: { ...typography.body, color: c.background, fontWeight: '600' },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    notFound: { ...typography.body, color: c.textSecondary },
+  });
+}

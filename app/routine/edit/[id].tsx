@@ -2,19 +2,19 @@ import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, KeyboardAvoid
 import { useLocalSearchParams, router } from 'expo-router';
 import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, typography, radius } from '../../../src/theme';
+import { spacing, typography, radius, AppColors } from '../../../src/theme';
+import { useColors } from '../../../src/hooks/useColors';
 import { useRoutineStore } from '../../../src/store/routineStore';
 
 const CATEGORIES = ['exercise', 'study', 'productivity', 'life_habits', 'self_improvement'];
 const CATEGORY_LABELS: Record<string, string> = {
-  exercise: 'Exercise',
-  study: 'Study',
-  productivity: 'Productivity',
-  life_habits: 'Life habits',
-  self_improvement: 'Self-improvement',
+  exercise: 'Exercise', study: 'Study', productivity: 'Productivity',
+  life_habits: 'Life habits', self_improvement: 'Self-improvement',
 };
 
 export default function RoutineEdit() {
+  const c = useColors();
+  const styles = makeStyles(c);
   const { id } = useLocalSearchParams<{ id: string }>();
   const { routines, updateRoutine } = useRoutineStore();
   const routine = routines.find((r) => r.id === id);
@@ -45,10 +45,7 @@ export default function RoutineEdit() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <Pressable onPress={() => router.back()}>
@@ -68,7 +65,7 @@ export default function RoutineEdit() {
             onChangeText={setName}
             autoFocus
             returnKeyType="done"
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor={c.textSecondary}
           />
 
           <Text style={styles.label}>Category</Text>
@@ -91,91 +88,38 @@ export default function RoutineEdit() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  title: {
-    ...typography.body,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  cancel: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-  save: {
-    ...typography.body,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  saveDisabled: {
-    color: colors.muted,
-  },
-  scroll: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.xxl,
-  },
-  label: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: spacing.sm,
-    marginTop: spacing.lg,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    ...typography.body,
-    color: colors.text,
-    backgroundColor: colors.surface,
-  },
-  categoryList: {
-    gap: spacing.sm,
-  },
-  categoryItem: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  categoryItemSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
-  },
-  categoryText: {
-    ...typography.body,
-    color: colors.text,
-  },
-  categoryTextSelected: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  notFound: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-});
+function makeStyles(c: AppColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.md,
+      borderBottomWidth: 1, borderBottomColor: c.border,
+    },
+    title: { ...typography.body, fontWeight: '600', color: c.text },
+    cancel: { ...typography.body, color: c.textSecondary },
+    save: { ...typography.body, color: c.primary, fontWeight: '600' },
+    saveDisabled: { color: c.muted },
+    scroll: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.xxl },
+    label: {
+      ...typography.caption, color: c.textSecondary,
+      textTransform: 'uppercase', letterSpacing: 0.8,
+      marginBottom: spacing.sm, marginTop: spacing.lg,
+    },
+    input: {
+      borderWidth: 1, borderColor: c.border, borderRadius: radius.md,
+      paddingVertical: spacing.md, paddingHorizontal: spacing.md,
+      ...typography.body, color: c.text, backgroundColor: c.surface,
+    },
+    categoryList: { gap: spacing.sm },
+    categoryItem: {
+      paddingVertical: spacing.sm, paddingHorizontal: spacing.md,
+      borderRadius: radius.md, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface,
+    },
+    categoryItemSelected: { borderColor: c.primary, backgroundColor: c.primary },
+    categoryText: { ...typography.body, color: c.text },
+    categoryTextSelected: { color: c.background, fontWeight: '600' },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    notFound: { ...typography.body, color: c.textSecondary },
+  });
+}

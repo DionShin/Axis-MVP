@@ -26,29 +26,24 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return status === 'granted';
 }
 
-export async function scheduleNightlyReminder(time: string): Promise<void> {
-  // Cancel existing reminders first
-  await cancelNightlyReminder();
+const MESSAGES = [
+  "Leave today's 1-minute record.",
+  'Just one minute tonight.',
+  'You can restart with one small check.',
+];
 
+/** Schedule a single daily reminder. Identifier is keyed by time so each is independent. */
+export async function scheduleNightlyReminder(time: string): Promise<void> {
   if (time === 'skip') return;
 
   const [hourStr, minuteStr] = time.split(':');
   const hour = parseInt(hourStr, 10);
   const minute = parseInt(minuteStr, 10);
-
-  const messages = [
-    'Leave today\'s 1-minute record.',
-    'Just one minute tonight.',
-    'You can restart with one small check.',
-  ];
-  const message = messages[Math.floor(Math.random() * messages.length)];
+  const message = MESSAGES[Math.floor(Math.random() * MESSAGES.length)];
 
   await Notifications.scheduleNotificationAsync({
-    identifier: 'nightly-reminder',
-    content: {
-      title: 'Axis',
-      body: message,
-    },
+    identifier: `nightly-reminder-${time}`,
+    content: { title: 'Axis', body: message },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour,
@@ -57,8 +52,30 @@ export async function scheduleNightlyReminder(time: string): Promise<void> {
   });
 }
 
+/** Replace all scheduled nightly reminders with the given time list. */
+export async function scheduleAllReminders(times: string[]): Promise<void> {
+  await cancelAllReminders();
+  await Promise.all(times.map(scheduleNightlyReminder));
+}
+
+/** Cancel every nightly reminder (including the legacy single-reminder identifier). */
+export async function cancelAllReminders(): Promise<void> {
+  // Cancel legacy single identifier
+  try {
+    await Notifications.cancelScheduledNotificationAsync('nightly-reminder');
+  } catch (_) {}
+
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  await Promise.all(
+    scheduled
+      .filter((n) => n.identifier.startsWith('nightly-reminder-'))
+      .map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier))
+  );
+}
+
+/** @deprecated Use scheduleAllReminders. Kept for onboarding compat. */
 export async function cancelNightlyReminder(): Promise<void> {
-  await Notifications.cancelScheduledNotificationAsync('nightly-reminder');
+  await cancelAllReminders();
 }
 
 export async function scheduleRecoveryReminder(): Promise<void> {
@@ -70,7 +87,7 @@ export async function scheduleRecoveryReminder(): Promise<void> {
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: 60 * 60 * 20, // 20 hours later
+      seconds: 60 * 60 * 20,
       repeats: false,
     },
   });

@@ -3,11 +3,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { supabase } from '../src/lib/supabase';
-import { colors, spacing, typography, radius } from '../src/theme';
+import { spacing, typography, radius, AppColors } from '../src/theme';
+import { useColors } from '../src/hooks/useColors';
 
 type Mode = 'signin' | 'signup';
 
 export default function AuthScreen() {
+  const c = useColors();
+  const styles = makeStyles(c);
+
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,7 +29,6 @@ export default function AuthScreen() {
       if (mode === 'signup') {
         const { error: signUpError } = await supabase.auth.signUp({ email, password });
         if (signUpError) throw signUpError;
-        // Auth state change in _layout will handle redirect
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
@@ -61,7 +64,7 @@ export default function AuthScreen() {
               keyboardType="email-address"
               autoComplete="email"
               placeholder="you@example.com"
-              placeholderTextColor={colors.muted}
+              placeholderTextColor={c.muted}
             />
           </View>
 
@@ -74,7 +77,7 @@ export default function AuthScreen() {
               secureTextEntry
               autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
               placeholder="••••••••"
-              placeholderTextColor={colors.muted}
+              placeholderTextColor={c.muted}
             />
           </View>
 
@@ -102,85 +105,32 @@ export default function AuthScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  inner: {
-    flex: 1,
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xl,
-    justifyContent: 'center',
-  },
-  header: {
-    marginBottom: spacing.xxl,
-  },
-  wordmark: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: colors.text,
-    letterSpacing: -1,
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-  form: {
-    gap: spacing.md,
-  },
-  field: {
-    gap: spacing.xs,
-  },
-  label: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  input: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    ...typography.body,
-    color: colors.text,
-  },
-  error: {
-    ...typography.caption,
-    color: '#e53e3e',
-    marginTop: spacing.xs,
-  },
-  button: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    marginTop: spacing.sm,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    ...typography.body,
-    color: '#fff',
-    fontWeight: '600',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: spacing.xl,
-  },
-  footerText: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-  footerLink: {
-    ...typography.body,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-});
+function makeStyles(c: AppColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    inner: { flex: 1, paddingHorizontal: spacing.xl, paddingBottom: spacing.xl, justifyContent: 'center' },
+    header: { marginBottom: spacing.xxl },
+    wordmark: { fontSize: 36, fontWeight: '700', color: c.text, letterSpacing: -1, marginBottom: spacing.sm },
+    subtitle: { ...typography.body, color: c.textSecondary },
+    form: { gap: spacing.md },
+    field: { gap: spacing.xs },
+    label: { ...typography.caption, color: c.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
+    input: {
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radius.md,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.md,
+      ...typography.body,
+      color: c.text,
+    },
+    error: { ...typography.caption, color: '#e53e3e', marginTop: spacing.xs },
+    button: { backgroundColor: c.primary, paddingVertical: spacing.md, borderRadius: radius.md, alignItems: 'center', marginTop: spacing.sm },
+    buttonDisabled: { opacity: 0.6 },
+    buttonText: { ...typography.body, color: c.background, fontWeight: '600' },
+    footer: { flexDirection: 'row', justifyContent: 'center', marginTop: spacing.xl },
+    footerText: { ...typography.body, color: c.textSecondary },
+    footerLink: { ...typography.body, color: c.primary, fontWeight: '600' },
+  });
+}

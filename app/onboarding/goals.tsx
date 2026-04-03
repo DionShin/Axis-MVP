@@ -1,7 +1,8 @@
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, typography, radius } from '../../src/theme';
+import { spacing, typography, radius, AppColors } from '../../src/theme';
+import { useColors } from '../../src/hooks/useColors';
 import { useOnboardingStore } from '../../src/store/onboardingStore';
 import { GoalCategory, MainDifficulty } from '../../src/types';
 
@@ -20,6 +21,8 @@ const DIFFICULTY_OPTIONS: { label: string; value: MainDifficulty }[] = [
 ];
 
 export default function OnboardingGoals() {
+  const c = useColors();
+  const styles = makeStyles(c);
   const { goalCategory, mainDifficulty, setGoalCategory, setMainDifficulty } = useOnboardingStore();
   const canContinue = goalCategory !== null && mainDifficulty !== null;
 
@@ -27,7 +30,6 @@ export default function OnboardingGoals() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Text style={styles.heading}>What's your main focus?</Text>
-
         <View style={styles.optionsGroup}>
           {GOAL_OPTIONS.map((opt) => (
             <Pressable
@@ -43,7 +45,6 @@ export default function OnboardingGoals() {
         </View>
 
         <Text style={[styles.heading, { marginTop: spacing.xl }]}>What's hardest for you?</Text>
-
         <View style={styles.optionsGroup}>
           {DIFFICULTY_OPTIONS.map((opt) => (
             <Pressable
@@ -69,58 +70,21 @@ export default function OnboardingGoals() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xl,
-  },
-  scroll: {
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.lg,
-  },
-  heading: {
-    ...typography.h2,
-    color: colors.text,
-    marginBottom: spacing.md,
-  },
-  optionsGroup: {
-    gap: spacing.sm,
-  },
-  option: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  optionSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
-  },
-  optionText: {
-    ...typography.body,
-    color: colors.text,
-  },
-  optionTextSelected: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  button: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    marginTop: spacing.md,
-  },
-  buttonDisabled: {
-    backgroundColor: colors.muted,
-  },
-  buttonText: {
-    ...typography.body,
-    color: '#fff',
-    fontWeight: '600',
-  },
-});
+function makeStyles(c: AppColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background, paddingHorizontal: spacing.xl, paddingBottom: spacing.xl },
+    scroll: { paddingTop: spacing.xl, paddingBottom: spacing.lg },
+    heading: { ...typography.h2, color: c.text, marginBottom: spacing.md },
+    optionsGroup: { gap: spacing.sm },
+    option: {
+      paddingVertical: spacing.md, paddingHorizontal: spacing.lg,
+      borderRadius: radius.md, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface,
+    },
+    optionSelected: { borderColor: c.primary, backgroundColor: c.primary },
+    optionText: { ...typography.body, color: c.text },
+    optionTextSelected: { color: c.background, fontWeight: '600' },
+    button: { backgroundColor: c.primary, paddingVertical: spacing.md, borderRadius: radius.md, alignItems: 'center', marginTop: spacing.md },
+    buttonDisabled: { backgroundColor: c.muted },
+    buttonText: { ...typography.body, color: c.background, fontWeight: '600' },
+  });
+}

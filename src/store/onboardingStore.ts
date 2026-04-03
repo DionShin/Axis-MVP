@@ -5,11 +5,13 @@ interface OnboardingState {
   completed: boolean;
   goalCategory: GoalCategory | null;
   mainDifficulty: MainDifficulty | null;
-  reminderTime: string;
+  reminderTimes: string[]; // "HH:MM" 24h strings; empty = disabled
   selectedRoutineNames: string[];
   setGoalCategory: (category: GoalCategory) => void;
   setMainDifficulty: (difficulty: MainDifficulty) => void;
-  setReminderTime: (time: string) => void;
+  setReminderTimes: (times: string[]) => void;
+  addReminderTime: (time: string) => void;
+  removeReminderTime: (time: string) => void;
   toggleRoutine: (name: string) => void;
   setCompleted: (completed: boolean) => void;
   reset: () => void;
@@ -19,7 +21,7 @@ const initialState = {
   completed: false,
   goalCategory: null,
   mainDifficulty: null,
-  reminderTime: '21:00',
+  reminderTimes: [] as string[],
   selectedRoutineNames: [] as string[],
 };
 
@@ -27,7 +29,14 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
   ...initialState,
   setGoalCategory: (goalCategory) => set({ goalCategory }),
   setMainDifficulty: (mainDifficulty) => set({ mainDifficulty }),
-  setReminderTime: (reminderTime) => set({ reminderTime }),
+  setReminderTimes: (reminderTimes) => set({ reminderTimes }),
+  addReminderTime: (time) =>
+    set((state) => {
+      if (state.reminderTimes.includes(time)) return state;
+      return { reminderTimes: [...state.reminderTimes, time].sort() };
+    }),
+  removeReminderTime: (time) =>
+    set((state) => ({ reminderTimes: state.reminderTimes.filter((t) => t !== time) })),
   toggleRoutine: (name) =>
     set((state) => {
       const exists = state.selectedRoutineNames.includes(name);

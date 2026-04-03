@@ -1,42 +1,39 @@
 import { View, Text, StyleSheet, Pressable, Switch, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
-import { colors, spacing, typography, radius } from '../../src/theme';
+import { router } from 'expo-router';
+import { spacing, typography, radius, AppColors } from '../../src/theme';
+import { useColors } from '../../src/hooks/useColors';
+import { useThemeStore } from '../../src/store/themeStore';
 import { useOnboardingStore } from '../../src/store/onboardingStore';
 import { useAuthStore } from '../../src/store/authStore';
 import { useRoutineStore } from '../../src/store/routineStore';
 import { supabase } from '../../src/lib/supabase';
-import {
-  scheduleNightlyReminder,
-  cancelNightlyReminder,
-  requestNotificationPermission,
-} from '../../src/lib/notifications';
+import { scheduleAllReminders, cancelAllReminders, requestNotificationPermission } from '../../src/lib/notifications';
+import { TimePicker } from '../../src/components/TimePicker';
 
-const TIME_OPTIONS = [
-  { label: '8:00 PM', value: '20:00' },
-  { label: '9:00 PM', value: '21:00' },
-  { label: '10:00 PM', value: '22:00' },
-  { label: '11:00 PM', value: '23:00' },
-];
+function format12h(time: string): string {
+  const [hStr, mStr] = time.split(':');
+  const h = parseInt(hStr, 10);
+  const period = h < 12 ? 'AM' : 'PM';
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${mStr} ${period}`;
+}
 
 function SettingRow({
-  label,
-  sublabel,
-  right,
-  onPress,
-  danger,
+  label, sublabel, right, onPress, danger, c,
 }: {
-  label: string;
-  sublabel?: string;
-  right?: React.ReactNode;
-  onPress?: () => void;
-  danger?: boolean;
+  label: string; sublabel?: string; right?: React.ReactNode;
+  onPress?: () => void; danger?: boolean; c: AppColors;
 }) {
   return (
-    <Pressable style={styles.row} onPress={onPress}>
-      <View style={styles.rowLeft}>
-        <Text style={[styles.rowLabel, danger && styles.rowLabelDanger]}>{label}</Text>
-        {sublabel && <Text style={styles.rowSublabel}>{sublabel}</Text>}
+    <Pressable
+      style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.md, paddingHorizontal: spacing.md, borderBottomWidth: 1, borderBottomColor: c.border }}
+      onPress={onPress}
+    >
+      <View style={{ flex: 1, marginRight: spacing.md }}>
+        <Text style={[{ ...typography.body, color: c.text }, danger && { color: '#d00' }]}>{label}</Text>
+        {sublabel && <Text style={{ ...typography.caption, color: c.textSecondary, marginTop: 2 }}>{sublabel}</Text>}
       </View>
       {right && <View>{right}</View>}
     </Pressable>
@@ -44,10 +41,15 @@ function SettingRow({
 }
 
 export default function SettingsScreen() {
-  const { reminderTime, setReminderTime } = useOnboardingStore();
+  const c = useColors();
+  const styles = makeStyles(c);
+  const { darkMode, toggleDarkMode } = useThemeStore();
+  const { reminderTimes, addReminderTime, removeReminderTime, setReminderTimes } = useOnboardingStore();
   const { setUser } = useAuthStore();
   const { setRoutines, setTodayChecks } = useRoutineStore();
-  const [notifEnabled, setNotifEnabled] = useState(reminderTime !== 'skip');
+
+  const notifEnabled = reminderTimes.length > 0;
+  const [pickerValue, setPickerValue] = useState('21:00');
 
   const handleToggleNotif = async (value: boolean) => {
     if (value) {
@@ -56,20 +58,28 @@ export default function SettingsScreen() {
         Alert.alert('Permission needed', 'Enable notifications in your device settings to use reminders.');
         return;
       }
-      setNotifEnabled(true);
-      await scheduleNightlyReminder(reminderTime === 'skip' ? '21:00' : reminderTime);
-      if (reminderTime === 'skip') setReminderTime('21:00');
+      const times = ['21:00'];
+      setReminderTimes(times);
+      await scheduleAllReminders(times);
     } else {
-      setNotifEnabled(false);
-      await cancelNightlyReminder();
+      setReminderTimes([]);
+      await cancelAllReminders();
     }
   };
 
-  const handleTimeChange = async (time: string) => {
-    setReminderTime(time);
-    if (notifEnabled) {
-      await scheduleNightlyReminder(time);
+  const handleAdd = async () => {
+    if (reminderTimes.includes(pickerValue)) {
+      Alert.alert('Already added', `${format12h(pickerValue)} is already in your reminder list.`);
+      return;
     }
+    addReminderTime(pickerValue);
+    const next = [...reminderTimes, pickerValue].filter((t, i, arr) => arr.indexOf(t) === i).sort();
+    await scheduleAllReminders(next);
+  };
+
+  const handleRemove = async (time: string) => {
+    removeReminderTime(time);
+    await scheduleAllReminders(reminderTimes.filter((t) => t !== time));
   };
 
   return (
@@ -80,56 +90,69 @@ export default function SettingsScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
-        {/* Notifications */}
         <Text style={styles.sectionLabel}>Notifications</Text>
         <View style={styles.card}>
           <SettingRow
+            c={c}
             label="Nightly reminder"
             sublabel="A short nudge to check your routines"
             right={
               <Switch
                 value={notifEnabled}
                 onValueChange={handleToggleNotif}
-                trackColor={{ false: colors.border, true: colors.primary }}
-                thumbColor="#fff"
+                trackColor={{ false: c.border, true: c.primary }}
+                thumbColor={c.background}
               />
             }
           />
 
           {notifEnabled && (
-            <View style={styles.timeOptions}>
-              <Text style={styles.timeLabel}>Reminder time</Text>
-              <View style={styles.timeGrid}>
-                {TIME_OPTIONS.map((opt) => (
-                  <Pressable
-                    key={opt.value}
-                    style={[styles.timeChip, reminderTime === opt.value && styles.timeChipSelected]}
-                    onPress={() => handleTimeChange(opt.value)}
-                  >
-                    <Text style={[styles.timeChipText, reminderTime === opt.value && styles.timeChipTextSelected]}>
-                      {opt.label}
-                    </Text>
-                  </Pressable>
-                ))}
+            <View style={styles.reminderSection}>
+              <View style={styles.pickerWrapper}>
+                <TimePicker value={pickerValue} onChange={setPickerValue} />
               </View>
+
+              <Pressable style={styles.addButton} onPress={handleAdd}>
+                <Text style={styles.addButtonText}>+ Add reminder</Text>
+              </Pressable>
+
+              {reminderTimes.length > 0 && (
+                <View style={styles.timeList}>
+                  <Text style={styles.timeListLabel}>Scheduled</Text>
+                  {reminderTimes.map((t) => (
+                    <View key={t} style={styles.timeRow}>
+                      <Text style={styles.timeRowText}>{format12h(t)}</Text>
+                      <Pressable onPress={() => handleRemove(t)} hitSlop={8}>
+                        <Text style={styles.removeText}>✕</Text>
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
           )}
         </View>
 
-        {/* Appearance — placeholder for dark mode */}
         <Text style={styles.sectionLabel}>Appearance</Text>
         <View style={styles.card}>
           <SettingRow
+            c={c}
             label="Dark mode"
-            sublabel="Coming soon"
-            right={<Switch value={false} disabled trackColor={{ false: colors.border, true: colors.primary }} thumbColor="#fff" />}
+            right={
+              <Switch
+                value={darkMode}
+                onValueChange={toggleDarkMode}
+                trackColor={{ false: c.border, true: c.primary }}
+                thumbColor={c.background}
+              />
+            }
           />
         </View>
 
-        {/* Account */}
         <Text style={styles.sectionLabel}>Account</Text>
         <View style={styles.card}>
           <SettingRow
+            c={c}
             label="Sign out"
             danger
             onPress={() =>
@@ -143,6 +166,7 @@ export default function SettingsScreen() {
                     setUser(null);
                     setRoutines([]);
                     setTodayChecks([]);
+                    router.replace('/auth');
                   },
                 },
               ])
@@ -156,98 +180,38 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.md,
-  },
-  title: {
-    ...typography.h2,
-    color: colors.text,
-  },
-  scroll: {
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xxl,
-  },
-  sectionLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: spacing.sm,
-    marginTop: spacing.lg,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  rowLeft: { flex: 1, marginRight: spacing.md },
-  rowLabel: {
-    ...typography.body,
-    color: colors.text,
-  },
-  rowLabelDanger: {
-    color: '#d00',
-  },
-  rowSublabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  timeOptions: {
-    padding: spacing.md,
-  },
-  timeLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-  },
-  timeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  timeChip: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
-  },
-  timeChipSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
-  },
-  timeChipText: {
-    ...typography.caption,
-    color: colors.text,
-  },
-  timeChipTextSelected: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  version: {
-    ...typography.small,
-    color: colors.muted,
-    textAlign: 'center',
-    marginTop: spacing.xxl,
-  },
-});
+function makeStyles(c: AppColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    header: { paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.md },
+    title: { ...typography.h2, color: c.text },
+    scroll: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl },
+    sectionLabel: {
+      ...typography.caption, color: c.textSecondary,
+      textTransform: 'uppercase', letterSpacing: 0.8,
+      marginBottom: spacing.sm, marginTop: spacing.lg,
+    },
+    card: {
+      backgroundColor: c.surface, borderRadius: radius.md,
+      borderWidth: 1, borderColor: c.border, overflow: 'hidden',
+    },
+    reminderSection: { paddingHorizontal: spacing.md, paddingVertical: spacing.md },
+    pickerWrapper: { alignItems: 'center', marginVertical: spacing.sm },
+    addButton: {
+      marginTop: spacing.sm, paddingVertical: spacing.sm,
+      borderRadius: radius.md, borderWidth: 1, borderColor: c.primary, alignItems: 'center',
+    },
+    addButtonText: { ...typography.body, color: c.primary, fontWeight: '600' },
+    timeList: { marginTop: spacing.md, gap: spacing.xs },
+    timeListLabel: { ...typography.caption, color: c.textSecondary, marginBottom: spacing.xs },
+    timeRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingVertical: spacing.xs, paddingHorizontal: spacing.sm,
+      backgroundColor: c.background, borderRadius: radius.sm,
+      borderWidth: 1, borderColor: c.border,
+    },
+    timeRowText: { ...typography.body, color: c.text, fontWeight: '500' },
+    removeText: { color: c.textSecondary, fontSize: 14, fontWeight: '600' },
+    version: { ...typography.small, color: c.muted, textAlign: 'center', marginTop: spacing.xxl },
+  });
+}
