@@ -6,16 +6,36 @@ import { spacing, typography, radius, AppColors } from '../../src/theme';
 import { useColors } from '../../src/hooks/useColors';
 import { useRoutineStore } from '../../src/store/routineStore';
 import { useAuthStore } from '../../src/store/authStore';
+import { useOnboardingStore } from '../../src/store/onboardingStore';
 import { DEFAULT_ROUTINES } from '../../src/constants';
 import { CategoryPicker } from '../../src/components/CategoryPicker';
+
+function getSuggestions(
+  currentCategory: string,
+  goalCategory: string | null,
+  existingNames: string[]
+): string[] {
+  const available = DEFAULT_ROUTINES.filter((r) => !existingNames.includes(r.name));
+
+  const currentMatch = available.filter((r) => r.category === currentCategory);
+  const goalMatch    = available.filter((r) => r.category === goalCategory && r.category !== currentCategory);
+  const rest         = available.filter((r) => r.category !== currentCategory && r.category !== goalCategory);
+
+  return [...currentMatch, ...goalMatch, ...rest].map((r) => r.name);
+}
 
 export default function AddRoutineModal() {
   const c = useColors();
   const styles = makeStyles(c);
   const { addRoutine } = useRoutineStore();
   const { user } = useAuthStore();
+  const { goalCategory } = useOnboardingStore();
+  const existingNames = useRoutineStore((s) => s.routines.map((r) => r.name));
+
   const [name, setName] = useState('');
   const [category, setCategory] = useState('life_habits');
+
+  const suggestions = getSuggestions(category, goalCategory, existingNames);
 
   const handleAdd = () => {
     const trimmed = name.trim();
@@ -48,13 +68,13 @@ export default function AddRoutineModal() {
 
           <Text style={styles.label}>Suggestions</Text>
           <View style={styles.suggestions}>
-            {DEFAULT_ROUTINES.map((r) => (
+            {suggestions.map((s) => (
               <Pressable
-                key={r.name}
-                style={[styles.chip, name === r.name && styles.chipSelected]}
-                onPress={() => setName(r.name)}
+                key={s}
+                style={[styles.chip, name === s && styles.chipSelected]}
+                onPress={() => setName(s)}
               >
-                <Text style={[styles.chipText, name === r.name && styles.chipTextSelected]}>{r.name}</Text>
+                <Text style={[styles.chipText, name === s && styles.chipTextSelected]}>{s}</Text>
               </Pressable>
             ))}
           </View>

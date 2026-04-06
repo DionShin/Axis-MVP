@@ -7,7 +7,7 @@
 
 ## 🔴 피드백 기반 우선 작업
 
-### 1. Suggestions 키워드 기준 만들기
+### ~~1. Suggestions 키워드 기준 만들기~~ ✅ 완료
 - **현황**: `add-routine.tsx`에서 `DEFAULT_ROUTINES` 전체를 무조건 나열
 - **문제**: 온보딩에서 선택한 goal category / difficulty와 무관하게 동일 목록 노출
 - **개선 방향**:
