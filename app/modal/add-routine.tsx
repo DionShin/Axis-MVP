@@ -7,12 +7,7 @@ import { useColors } from '../../src/hooks/useColors';
 import { useRoutineStore } from '../../src/store/routineStore';
 import { useAuthStore } from '../../src/store/authStore';
 import { DEFAULT_ROUTINES } from '../../src/constants';
-
-const CATEGORIES = ['exercise', 'study', 'productivity', 'life_habits', 'self_improvement'];
-const CATEGORY_LABELS: Record<string, string> = {
-  exercise: 'Exercise', study: 'Study', productivity: 'Productivity',
-  life_habits: 'Life habits', self_improvement: 'Self-improvement',
-};
+import { CategoryPicker } from '../../src/components/CategoryPicker';
 
 export default function AddRoutineModal() {
   const c = useColors();
@@ -65,19 +60,7 @@ export default function AddRoutineModal() {
           </View>
 
           <Text style={styles.label}>Category</Text>
-          <View style={styles.categoryList}>
-            {CATEGORIES.map((cat) => (
-              <Pressable
-                key={cat}
-                style={[styles.categoryItem, category === cat && styles.categoryItemSelected]}
-                onPress={() => setCategory(cat)}
-              >
-                <Text style={[styles.categoryText, category === cat && styles.categoryTextSelected]}>
-                  {CATEGORY_LABELS[cat]}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          <CategoryPicker selected={category} onChange={setCategory} />
         </ScrollView>
 
         <View style={styles.footer}>
@@ -119,14 +102,6 @@ function makeStyles(c: AppColors) {
     chipSelected: { borderColor: c.primary, backgroundColor: c.primary },
     chipText: { ...typography.caption, color: c.text },
     chipTextSelected: { color: c.background, fontWeight: '600' },
-    categoryList: { gap: spacing.sm },
-    categoryItem: {
-      paddingVertical: spacing.sm, paddingHorizontal: spacing.md,
-      borderRadius: radius.md, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface,
-    },
-    categoryItemSelected: { borderColor: c.primary, backgroundColor: c.primary },
-    categoryText: { ...typography.body, color: c.text },
-    categoryTextSelected: { color: c.background, fontWeight: '600' },
     footer: {
       paddingHorizontal: spacing.xl, paddingBottom: spacing.xl,
       paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: c.border,

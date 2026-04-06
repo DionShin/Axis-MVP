@@ -5,12 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { spacing, typography, radius, AppColors } from '../../../src/theme';
 import { useColors } from '../../../src/hooks/useColors';
 import { useRoutineStore } from '../../../src/store/routineStore';
-
-const CATEGORIES = ['exercise', 'study', 'productivity', 'life_habits', 'self_improvement'];
-const CATEGORY_LABELS: Record<string, string> = {
-  exercise: 'Exercise', study: 'Study', productivity: 'Productivity',
-  life_habits: 'Life habits', self_improvement: 'Self-improvement',
-};
+import { CategoryPicker } from '../../../src/components/CategoryPicker';
 
 export default function RoutineEdit() {
   const c = useColors();
@@ -69,19 +64,7 @@ export default function RoutineEdit() {
           />
 
           <Text style={styles.label}>Category</Text>
-          <View style={styles.categoryList}>
-            {CATEGORIES.map((cat) => (
-              <Pressable
-                key={cat}
-                style={[styles.categoryItem, category === cat && styles.categoryItemSelected]}
-                onPress={() => setCategory(cat)}
-              >
-                <Text style={[styles.categoryText, category === cat && styles.categoryTextSelected]}>
-                  {CATEGORY_LABELS[cat]}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          <CategoryPicker selected={category} onChange={setCategory} />
         </ScrollView>
       </SafeAreaView>
     </KeyboardAvoidingView>
@@ -111,14 +94,6 @@ function makeStyles(c: AppColors) {
       paddingVertical: spacing.md, paddingHorizontal: spacing.md,
       ...typography.body, color: c.text, backgroundColor: c.surface,
     },
-    categoryList: { gap: spacing.sm },
-    categoryItem: {
-      paddingVertical: spacing.sm, paddingHorizontal: spacing.md,
-      borderRadius: radius.md, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface,
-    },
-    categoryItemSelected: { borderColor: c.primary, backgroundColor: c.primary },
-    categoryText: { ...typography.body, color: c.text },
-    categoryTextSelected: { color: c.background, fontWeight: '600' },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     notFound: { ...typography.body, color: c.textSecondary },
   });

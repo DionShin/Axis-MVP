@@ -15,12 +15,10 @@
   - 이미 추가한 루틴은 Suggestions에서 제외
   - 예: exercise 선택한 유저 → 운동 관련 루틴 상단 노출
 
-### 2. Category 직접 추가 기능
-- **현황**: `['exercise', 'study', 'productivity', 'life_habits', 'self_improvement']` 5개 하드코딩, 수정 불가
-- **개선 방향**:
-  - 목록 하단에 "＋ Add custom category" 버튼
-  - TextInput으로 입력 후 저장 (로컬 또는 Supabase)
-  - 커스텀 카테고리는 루틴 추가/수정 화면에서 동일하게 노출
+### ~~2. Category 직접 추가 기능~~ ✅ 완료
+- `categoryStore.ts` — 커스텀 카테고리 Zustand + AsyncStorage 영속
+- `CategoryPicker` 컴포넌트 — 기본 5개 + 커스텀 목록, 인라인 추가 UI
+- `add-routine.tsx` / `edit/[id].tsx` 모두 적용
 
 ### 3. History 탭 — 루틴 pathway 디자인
 - **현황**: 히트맵(GitHub contribution 방식) + 루틴별 달성률 카드
