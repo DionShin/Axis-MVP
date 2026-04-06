@@ -5,7 +5,8 @@ import { useColors } from '../hooks/useColors';
 import { typography } from '../theme';
 
 const PERIODS = ['AM', 'PM'];
-const HOURS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+// iOS convention: 12, 1, 2, ..., 11
+const HOURS = ['12', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'];
 const MINUTES = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'];
 
 function parseTime(time: string): { periodIdx: number; hourIdx: number; minuteIdx: number } {
@@ -14,11 +15,14 @@ function parseTime(time: string): { periodIdx: number; hourIdx: number; minuteId
   const m = parseInt(mStr, 10);
   const periodIdx = h < 12 ? 0 : 1;
   const hour12 = h % 12 === 0 ? 12 : h % 12;
-  return { periodIdx, hourIdx: hour12 - 1, minuteIdx: Math.round(m / 5) % 12 };
+  // 12 → index 0, 1 → index 1, ..., 11 → index 11
+  const hourIdx = hour12 === 12 ? 0 : hour12;
+  return { periodIdx, hourIdx, minuteIdx: Math.round(m / 5) % 12 };
 }
 
 function buildTime(periodIdx: number, hourIdx: number, minuteIdx: number): string {
-  const hour12 = hourIdx + 1;
+  // index 0 → 12, index 1 → 1, ..., index 11 → 11
+  const hour12 = hourIdx === 0 ? 12 : hourIdx;
   const hour24 = periodIdx === 0
     ? (hour12 === 12 ? 0 : hour12)
     : (hour12 === 12 ? 12 : hour12 + 12);
