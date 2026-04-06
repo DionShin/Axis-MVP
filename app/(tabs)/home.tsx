@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { spacing, typography, radius, AppColors } from '../../src/theme';
 import { useColors } from '../../src/hooks/useColors';
 import { useRoutineStore } from '../../src/store/routineStore';
@@ -37,25 +38,29 @@ export default function HomeScreen() {
 
   const { routines, todayChecks, toggleCheck } = useRoutineStore();
   const { user } = useAuthStore();
+  const [archivedOpen, setArchivedOpen] = useState(false);
 
   const weekDays = getWeekDays();
   const today = new Date().toISOString().split('T')[0];
 
-  const displayRoutines = routines.filter((r) => r.status === 'active');
+  const activeRoutines   = routines.filter((r) => r.status === 'active');
+  const archivedRoutines = routines.filter((r) => r.status === 'archived');
   const checkedIds = new Set(todayChecks.filter((c) => c.checked).map((c) => c.routine_id));
   const checkedCount = checkedIds.size;
-  const totalCount = displayRoutines.length;
+  const totalCount   = activeRoutines.length;
   const showRecovery = daysSinceLastCheck(todayChecks) >= RECOVERY_TRIGGER_DAYS && totalCount > 0;
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
+        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.greeting}>{getGreeting()}</Text>
           <Text style={styles.date}>{formatDate(new Date())}</Text>
         </View>
 
+        {/* Weekly strip */}
         <View style={styles.weekRow}>
           {weekDays.map((d, i) => (
             <View key={i} style={[styles.dayCell, d.isToday && styles.dayCellActive]}>
@@ -67,47 +72,55 @@ export default function HomeScreen() {
           ))}
         </View>
 
+        {/* Progress */}
         {totalCount > 0 && (
           <View style={styles.progressRow}>
             <Text style={styles.progressText}>{checkedCount}/{totalCount} done today</Text>
             <View style={styles.progressBar}>
-              <View
-                style={[
-                  styles.progressFill,
-                  { width: `${totalCount > 0 ? (checkedCount / totalCount) * 100 : 0}%` },
-                ]}
-              />
+              <View style={[styles.progressFill, { width: `${(checkedCount / totalCount) * 100}%` }]} />
             </View>
           </View>
         )}
 
+        {/* Active routines */}
         <View style={styles.section}>
-          {displayRoutines.length === 0 ? (
+          {activeRoutines.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>No routines yet.</Text>
               <Text style={styles.emptySubText}>Add your first routine to get started.</Text>
             </View>
           ) : (
-            displayRoutines.map((routine) => {
+            activeRoutines.map((routine) => {
               const checked = checkedIds.has(routine.id);
               return (
-                <Pressable
-                  key={routine.id}
-                  style={[styles.routineCard, checked && styles.routineCardChecked]}
-                  onPress={() => user && toggleCheck(user.id, routine.id, today)}
-                >
-                  <View style={[styles.checkCircle, checked && styles.checkCircleChecked]}>
-                    {checked && <Text style={styles.checkMark}>✓</Text>}
-                  </View>
-                  <Text style={[styles.routineName, checked && styles.routineNameChecked]}>
-                    {routine.name}
-                  </Text>
-                </Pressable>
+                <View key={routine.id} style={[styles.routineCard, checked && styles.routineCardChecked]}>
+                  {/* Left: tap to check */}
+                  <Pressable
+                    style={styles.checkArea}
+                    onPress={() => user && toggleCheck(user.id, routine.id, today)}
+                  >
+                    <View style={[styles.checkCircle, checked && styles.checkCircleChecked]}>
+                      {checked && <Text style={styles.checkMark}>✓</Text>}
+                    </View>
+                    <Text style={[styles.routineName, checked && styles.routineNameChecked]}>
+                      {routine.name}
+                    </Text>
+                  </Pressable>
+                  {/* Right: tap to navigate to detail */}
+                  <Pressable
+                    style={styles.chevronArea}
+                    onPress={() => router.push(`/routine/${routine.id}`)}
+                    hitSlop={8}
+                  >
+                    <Text style={styles.chevron}>›</Text>
+                  </Pressable>
+                </View>
               );
             })
           )}
         </View>
 
+        {/* Recovery banner */}
         {showRecovery && (
           <Pressable style={styles.recoveryBanner} onPress={() => router.push('/modal/recovery')}>
             <Text style={styles.recoveryTitle}>Been a while?</Text>
@@ -115,9 +128,33 @@ export default function HomeScreen() {
           </Pressable>
         )}
 
+        {/* Add routine */}
         <Pressable style={styles.addButton} onPress={() => router.push('/modal/add-routine')}>
           <Text style={styles.addButtonText}>+ Add routine</Text>
         </Pressable>
+
+        {/* Archived section */}
+        {archivedRoutines.length > 0 && (
+          <View style={styles.archivedSection}>
+            <Pressable style={styles.archivedToggle} onPress={() => setArchivedOpen((v) => !v)}>
+              <Text style={styles.archivedToggleText}>
+                Archived ({archivedRoutines.length})
+              </Text>
+              <Text style={styles.archivedToggleIcon}>{archivedOpen ? '∧' : '∨'}</Text>
+            </Pressable>
+
+            {archivedOpen && archivedRoutines.map((routine) => (
+              <Pressable
+                key={routine.id}
+                style={styles.archivedRow}
+                onPress={() => router.push(`/routine/${routine.id}`)}
+              >
+                <Text style={styles.archivedName}>{routine.name}</Text>
+                <Text style={styles.chevron}>›</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
 
       </ScrollView>
     </SafeAreaView>
@@ -146,10 +183,13 @@ function makeStyles(c: AppColors) {
     routineCard: {
       flexDirection: 'row', alignItems: 'center',
       backgroundColor: c.surface, borderRadius: radius.md,
-      paddingVertical: spacing.md, paddingHorizontal: spacing.md,
-      borderWidth: 1, borderColor: c.border, gap: spacing.md,
+      borderWidth: 1, borderColor: c.border,
     },
     routineCardChecked: { borderColor: c.primary, backgroundColor: c.border },
+    checkArea: {
+      flex: 1, flexDirection: 'row', alignItems: 'center',
+      gap: spacing.md, paddingVertical: spacing.md, paddingLeft: spacing.md,
+    },
     checkCircle: {
       width: 28, height: 28, borderRadius: 14,
       borderWidth: 1.5, borderColor: c.textSecondary,
@@ -159,6 +199,8 @@ function makeStyles(c: AppColors) {
     checkMark: { color: c.background, fontSize: 13, fontWeight: '700' },
     routineName: { ...typography.body, color: c.text, flex: 1 },
     routineNameChecked: { color: c.textSecondary, textDecorationLine: 'line-through' },
+    chevronArea: { paddingVertical: spacing.md, paddingHorizontal: spacing.md },
+    chevron: { fontSize: 20, color: c.muted },
     emptyState: { alignItems: 'center', paddingVertical: spacing.xxl },
     emptyText: { ...typography.h3, color: c.text, marginBottom: spacing.xs },
     emptySubText: { ...typography.body, color: c.textSecondary },
@@ -174,5 +216,20 @@ function makeStyles(c: AppColors) {
       borderRadius: radius.md, borderWidth: 1, borderColor: c.border, alignItems: 'center',
     },
     addButtonText: { ...typography.body, color: c.textSecondary },
+    archivedSection: { marginTop: spacing.xl },
+    archivedToggle: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingVertical: spacing.sm,
+    },
+    archivedToggleText: { ...typography.caption, color: c.textSecondary, textTransform: 'uppercase', letterSpacing: 0.8 },
+    archivedToggleIcon: { color: c.muted, fontSize: 12 },
+    archivedRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingVertical: spacing.sm, paddingHorizontal: spacing.md,
+      backgroundColor: c.surface, borderRadius: radius.md,
+      borderWidth: 1, borderColor: c.border, marginTop: spacing.sm,
+      opacity: 0.6,
+    },
+    archivedName: { ...typography.body, color: c.textSecondary },
   });
 }

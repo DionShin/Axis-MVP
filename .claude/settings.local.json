@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /c/Users/USER/Desktop/Axis-MVP log --oneline -10)",
+      "Bash(ls /c/Users/USER/Desktop/Axis-MVP/src/features && ls /c/Users/USER/Desktop/Axis-MVP/app/\\\\\\(tabs\\\\\\))",
+      "Bash(cat /c/Users/USER/Desktop/Axis-MVP/app/\\\\\\(tabs\\\\\\)/home.tsx)",
+      "Bash(cat /c/Users/USER/Desktop/Axis-MVP/app/\\\\\\(tabs\\\\\\)/report.tsx && cat /c/Users/USER/Desktop/Axis-MVP/src/utils/report.ts)",
+      "Bash(cat /c/Users/USER/Desktop/Axis-MVP/app/\\\\\\(tabs\\\\\\)/routines.tsx && cat /c/Users/USER/Desktop/Axis-MVP/app/routine/\\\\[id\\\\].tsx)",
+      "Bash(cat /c/Users/USER/Desktop/Axis-MVP/package.json && cat /c/Users/USER/Desktop/Axis-MVP/app/\\\\\\(tabs\\\\\\)/history.tsx | head -50)",
+      "Bash(grep -n \"archiveRoutine\\\\|restartRoutine\\\\|toggleCheck\\\\|addRoutine\\\\|updateRoutine\" /c/Users/USER/Desktop/Axis-MVP/app/modal/recovery.tsx /c/Users/USER/Desktop/Axis-MVP/app/routine/\\\\[id\\\\].tsx)",
+      "Bash(npx tsc:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git restore:*)",
+      "Bash(npm install:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}

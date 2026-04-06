@@ -29,12 +29,10 @@
   - 루틴 시작/중단/재시작 지점 표시
   - 히트맵은 전체 요약으로 유지하고, 아래에 pathway view 추가
 
-### 4. Routines 탭 필요성 검토
-- **현황**: 탭바에 Home / History / Report / Routines / Settings 5개
-- **검토 포인트**:
-  - Routines 탭의 기능(루틴 목록 보기, 추가/수정/아카이브)이 Home에서도 접근 가능한지
-  - 탭이 5개면 하단 바가 좁아짐 — 4개 탭으로 줄이고 Routines 관리를 Settings 또는 Home 내 메뉴로 이동하는 방안 검토
-  - 결정 후 탭 구조 리팩토링
+### ~~4. Routines 탭 필요성 검토~~ ✅ 완료
+- Routines 탭 제거, 탭바 4개로 축소 (Home / History / Report / Settings)
+- Home 루틴 카드: 왼쪽 탭 = 체크토글, 오른쪽 `›` = 상세 이동
+- Home 하단 Archived 섹션 추가 (접기/펼치기)
 
 ---
 

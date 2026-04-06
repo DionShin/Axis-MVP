@@ -15,10 +15,9 @@ export default function TabLayout() {
         tabBarInactiveTintColor: c.textSecondary,
       }}
     >
-      <Tabs.Screen name="home" options={{ title: 'Home' }} />
-      <Tabs.Screen name="history" options={{ title: 'History' }} />
-      <Tabs.Screen name="report" options={{ title: 'Report' }} />
-      <Tabs.Screen name="routines" options={{ title: 'Routines' }} />
+      <Tabs.Screen name="home"     options={{ title: 'Home' }} />
+      <Tabs.Screen name="history"  options={{ title: 'History' }} />
+      <Tabs.Screen name="report"   options={{ title: 'Report' }} />
       <Tabs.Screen name="settings" options={{ title: 'Settings' }} />
     </Tabs>
   );
