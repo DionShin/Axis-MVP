@@ -18,6 +18,14 @@ export const BASE_CATEGORY_LABELS: Record<string, string> = {
   self_improvement: 'Self-improvement',
 };
 
+export const BASE_CATEGORY_LABELS_KO: Record<string, string> = {
+  exercise: '운동',
+  study: '공부',
+  productivity: '생산성',
+  life_habits: '생활 습관',
+  self_improvement: '자기계발',
+};
+
 interface CategoryState {
   customCategories: string[]; // raw user-entered strings
   addCustomCategory: (name: string) => void;
@@ -47,9 +55,12 @@ export const useCategoryStore = create<CategoryState>()(
 );
 
 /** Display label for any category (base or custom) */
-export function categoryLabel(cat: string): string {
+export function categoryLabel(cat: string, lang: 'en' | 'ko' = 'en'): string {
+  if (lang === 'ko') {
+    if (BASE_CATEGORY_LABELS_KO[cat]) return BASE_CATEGORY_LABELS_KO[cat];
+    return cat.split('_').join(' ');
+  }
   if (BASE_CATEGORY_LABELS[cat]) return BASE_CATEGORY_LABELS[cat];
-  // custom: snake_case → Title Case
   return cat
     .split('_')
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))

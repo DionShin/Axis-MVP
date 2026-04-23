@@ -7,6 +7,8 @@ import {
   BASE_CATEGORIES,
   categoryLabel,
 } from '../store/categoryStore';
+import { useLanguageStore } from '../store/languageStore';
+import { useStrings } from '../hooks/useStrings';
 
 interface Props {
   selected: string;
@@ -17,6 +19,8 @@ export function CategoryPicker({ selected, onChange }: Props) {
   const c = useColors();
   const styles = makeStyles(c);
   const { customCategories, addCustomCategory } = useCategoryStore();
+  const { language } = useLanguageStore();
+  const cp = useStrings().category_picker;
   const [adding, setAdding] = useState(false);
   const [input, setInput] = useState('');
   const inputRef = useRef<TextInput>(null);
@@ -49,7 +53,7 @@ export function CategoryPicker({ selected, onChange }: Props) {
           onPress={() => onChange(cat)}
         >
           <Text style={[styles.itemText, selected === cat && styles.itemTextSelected]}>
-            {categoryLabel(cat)}
+            {categoryLabel(cat, language)}
           </Text>
         </Pressable>
       ))}
@@ -61,7 +65,7 @@ export function CategoryPicker({ selected, onChange }: Props) {
             style={styles.input}
             value={input}
             onChangeText={setInput}
-            placeholder="Category name..."
+            placeholder={cp.placeholder}
             placeholderTextColor={c.textSecondary}
             returnKeyType="done"
             onSubmitEditing={handleAdd}
@@ -71,7 +75,7 @@ export function CategoryPicker({ selected, onChange }: Props) {
             style={[styles.addConfirmBtn, !input.trim() && styles.addConfirmBtnDisabled]}
             onPress={handleAdd}
           >
-            <Text style={styles.addConfirmText}>Add</Text>
+            <Text style={styles.addConfirmText}>{cp.confirm_btn}</Text>
           </Pressable>
           <Pressable style={styles.cancelBtn} onPress={() => { setAdding(false); setInput(''); }}>
             <Text style={styles.cancelText}>✕</Text>
@@ -79,7 +83,7 @@ export function CategoryPicker({ selected, onChange }: Props) {
         </View>
       ) : (
         <Pressable style={styles.addBtn} onPress={handleStartAdding}>
-          <Text style={styles.addBtnText}>＋ Add category</Text>
+          <Text style={styles.addBtnText}>{cp.add_btn}</Text>
         </Pressable>
       )}
     </View>

@@ -5,41 +5,54 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { spacing, typography, radius, AppColors } from '../../src/theme';
 import { useColors } from '../../src/hooks/useColors';
 import { useRoutineStore } from '../../src/store/routineStore';
+import { useStrings } from '../../src/hooks/useStrings';
 import { useAuthStore } from '../../src/store/authStore';
 import { useOnboardingStore } from '../../src/store/onboardingStore';
 import { DEFAULT_ROUTINES } from '../../src/constants';
 import { CategoryPicker } from '../../src/components/CategoryPicker';
+import { useLanguageStore } from '../../src/store/languageStore';
+import { Language } from '../../src/i18n/strings';
 
 function getSuggestions(
   currentCategory: string,
   goalCategory: string | null,
-  existingNames: string[]
+  existingNames: string[],
+  language: Language
 ): string[] {
-  const available = DEFAULT_ROUTINES.filter((r) => !existingNames.includes(r.name));
+  const available = DEFAULT_ROUTINES.filter(
+    (r) => !existingNames.includes(r.name) && !existingNames.includes(r.name_ko)
+  );
 
   const currentMatch = available.filter((r) => r.category === currentCategory);
   const goalMatch    = available.filter((r) => r.category === goalCategory && r.category !== currentCategory);
   const rest         = available.filter((r) => r.category !== currentCategory && r.category !== goalCategory);
 
-  return [...currentMatch, ...goalMatch, ...rest].map((r) => r.name);
+  return [...currentMatch, ...goalMatch, ...rest].map((r) =>
+    language === 'ko' ? r.name_ko : r.name
+  );
 }
 
 export default function AddRoutineModal() {
   const c = useColors();
   const styles = makeStyles(c);
-  const { addRoutine } = useRoutineStore();
+  const s = useStrings().add_routine;
+  const { addRoutine, routines } = useRoutineStore();
   const { user } = useAuthStore();
   const { goalCategory } = useOnboardingStore();
-  const existingNames = useRoutineStore((s) => s.routines.map((r) => r.name));
+  const { language } = useLanguageStore();
+  const existingNames = routines.map((r) => r.name);
 
   const [name, setName] = useState('');
   const [category, setCategory] = useState('life_habits');
 
-  const suggestions = getSuggestions(category, goalCategory, existingNames);
+  const suggestions = getSuggestions(category, goalCategory, existingNames, language);
+
+  const MAX_NAME_LENGTH = 50;
 
   const handleAdd = () => {
     const trimmed = name.trim();
     if (!trimmed || !user) return;
+    if (trimmed.length > MAX_NAME_LENGTH) return;
     addRoutine(user.id, trimmed, category);
     router.back();
   };
@@ -48,25 +61,26 @@ export default function AddRoutineModal() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>New routine</Text>
+          <Text style={styles.title}>{s.title}</Text>
           <Pressable onPress={() => router.back()}>
             <Text style={styles.closeBtn}>✕</Text>
           </Pressable>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-          <Text style={styles.label}>Name</Text>
+          <Text style={styles.label}>{s.label_name}</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. Read 10 minutes"
+            placeholder={s.placeholder}
             placeholderTextColor={c.textSecondary}
             value={name}
             onChangeText={setName}
             autoFocus
             returnKeyType="done"
+            maxLength={50}
           />
 
-          <Text style={styles.label}>Suggestions</Text>
+          <Text style={styles.label}>{s.label_suggestions}</Text>
           <View style={styles.suggestions}>
             {suggestions.map((s) => (
               <Pressable
@@ -79,13 +93,13 @@ export default function AddRoutineModal() {
             ))}
           </View>
 
-          <Text style={styles.label}>Category</Text>
+          <Text style={styles.label}>{s.label_category}</Text>
           <CategoryPicker selected={category} onChange={setCategory} />
         </ScrollView>
 
         <View style={styles.footer}>
           <Pressable style={[styles.button, !name.trim() && styles.buttonDisabled]} onPress={handleAdd}>
-            <Text style={styles.buttonText}>Add routine</Text>
+            <Text style={styles.buttonText}>{s.btn_add}</Text>
           </Pressable>
         </View>
       </SafeAreaView>

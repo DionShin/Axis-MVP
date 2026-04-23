@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { spacing, typography, radius, AppColors } from '../../src/theme';
 import { useColors } from '../../src/hooks/useColors';
 import { useRoutineStore } from '../../src/store/routineStore';
+import { useStrings } from '../../src/hooks/useStrings';
 import { generateInsight } from '../../src/utils/report';
 
 type Period = 'weekly' | 'monthly';
@@ -22,14 +23,15 @@ export default function ReportScreen() {
   const c = useColors();
   const styles = makeStyles(c);
 
+  const s = useStrings().report;
   const [period, setPeriod] = useState<Period>('weekly');
   const { routines, checks } = useRoutineStore();
-  const insight = generateInsight(routines, checks, period);
+  const insight = generateInsight(routines, checks, period, s);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Report</Text>
+        <Text style={styles.title}>{s.title}</Text>
         <View style={styles.toggle}>
           {(['weekly', 'monthly'] as Period[]).map((p) => (
             <Pressable
@@ -38,7 +40,7 @@ export default function ReportScreen() {
               onPress={() => setPeriod(p)}
             >
               <Text style={[styles.toggleText, period === p && styles.toggleTextActive]}>
-                {p.charAt(0).toUpperCase() + p.slice(1)}
+                {p === 'weekly' ? s.weekly : s.monthly}
               </Text>
             </Pressable>
           ))}
@@ -48,7 +50,7 @@ export default function ReportScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <View style={styles.row2}>
           <View style={[styles.card, styles.cardHalf]}>
-            <Text style={styles.cardMeta}>Best this {period === 'weekly' ? 'week' : 'month'}</Text>
+            <Text style={styles.cardMeta}>{period === 'weekly' ? s.best_week : s.best_month}</Text>
             {insight.bestRoutine ? (
               <>
                 <Text style={styles.cardName} numberOfLines={2}>{insight.bestRoutine.name}</Text>
@@ -61,7 +63,7 @@ export default function ReportScreen() {
           </View>
 
           <View style={[styles.card, styles.cardHalf]}>
-            <Text style={styles.cardMeta}>Needs attention</Text>
+            <Text style={styles.cardMeta}>{s.needs_attention}</Text>
             {insight.worstRoutine ? (
               <>
                 <Text style={styles.cardName} numberOfLines={2}>{insight.worstRoutine.name}</Text>
@@ -69,14 +71,14 @@ export default function ReportScreen() {
                 <Text style={styles.cardRate}>{Math.round(insight.worstRate * 100)}%</Text>
               </>
             ) : (
-              <Text style={styles.cardEmpty}>All good</Text>
+              <Text style={styles.cardEmpty}>{s.all_good}</Text>
             )}
           </View>
         </View>
 
         {insight.patterns.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Patterns</Text>
+            <Text style={styles.sectionLabel}>{s.section_patterns}</Text>
             {insight.patterns.map((pattern, i) => (
               <View key={i} style={styles.patternCard}>
                 <View style={styles.patternDot} />
@@ -88,7 +90,7 @@ export default function ReportScreen() {
 
         {insight.nextAction && (
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Suggestion</Text>
+            <Text style={styles.sectionLabel}>{s.section_suggestion}</Text>
             <View style={styles.suggestionCard}>
               <Text style={styles.suggestionText}>{insight.nextAction}</Text>
             </View>
@@ -97,14 +99,14 @@ export default function ReportScreen() {
 
         {insight.patterns.length === 0 && !insight.nextAction && routines.filter(r => r.status === 'active').length > 0 && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>Keep checking in.</Text>
-            <Text style={styles.emptyBody}>Patterns will appear here after a few days of tracking.</Text>
+            <Text style={styles.emptyTitle}>{s.empty_title}</Text>
+            <Text style={styles.emptyBody}>{s.empty_body}</Text>
           </View>
         )}
 
         {routines.filter(r => r.status === 'active').length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>All routines</Text>
+            <Text style={styles.sectionLabel}>{s.section_routines}</Text>
             {routines.filter((r) => r.status === 'active').map((r) => (
               <Pressable
                 key={r.id}

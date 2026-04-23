@@ -1,11 +1,12 @@
 {
   "expo": {
-    "name": "Axis-MVP",
-    "slug": "Axis-MVP",
+    "name": "Axis",
+    "slug": "axis-mvp",
     "version": "1.0.0",
+    "scheme": "axis",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -13,21 +14,47 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.axis.app",
+      "infoPlist": {
+        "NSUserNotificationsUsageDescription": "Axis uses notifications to remind you to check your daily routines."
+      }
     },
     "android": {
+      "package": "com.axis.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router"
-    ]
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#000000",
+          "androidMode": "default",
+          "androidCollapsedTitle": "Axis"
+        }
+      ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "40c5dccf-ce17-4d5d-a88b-b87e7f3934e1"
+      }
+    },
+    "owner": "dionshin"
   }
 }

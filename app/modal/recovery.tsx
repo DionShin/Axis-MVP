@@ -1,58 +1,128 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { router } from 'expo-router';
+import { useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { spacing, typography, radius, AppColors } from '../../src/theme';
 import { useColors } from '../../src/hooks/useColors';
 import { useRoutineStore } from '../../src/store/routineStore';
-
-type RecoveryOption = 'minimum' | 'continue' | 'reduce';
+import { useStrings } from '../../src/hooks/useStrings';
+import { useAuthStore } from '../../src/store/authStore';
+import { useRecoveryStore } from '../../src/store/recoveryStore';
+import { recommendReducedRoutines } from '../../src/utils/recovery';
 
 export default function RecoveryModal() {
   const c = useColors();
   const styles = makeStyles(c);
-  const { routines, archiveRoutine } = useRoutineStore();
-  const active = routines.filter((r) => r.status === 'active');
+  const s = useStrings().recovery_modal;
 
-  const handleOption = (option: RecoveryOption) => {
-    if (option === 'reduce' && active.length > 2) {
-      const toKeep = active.slice(0, 2).map((r) => r.id);
-      active.forEach((r) => { if (!toKeep.includes(r.id)) archiveRoutine(r.id); });
-    }
-    router.replace('/(tabs)/home');
+  const { routines, checks, loadChecks } = useRoutineStore();
+  const { user } = useAuthStore();
+  const { enterReducedMode } = useRecoveryStore();
+
+  const [step, setStep] = useState<'entry' | 'select'>('entry');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const activeRoutines = routines.filter((r) => r.status === 'active');
+
+  // Load 30-day history for smarter recommendations
+  useEffect(() => {
+    if (!user) return;
+    const end = new Date().toISOString().split('T')[0];
+    const start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0];
+    loadChecks(user.id, start, end);
+  }, [user?.id]);
+
+  const handleGoToSelect = () => {
+    const recommended = recommendReducedRoutines(routines, checks);
+    setSelectedIds(recommended.map((r) => r.id));
+    setStep('select');
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.inner}>
-        <Text style={styles.emoji}>👋</Text>
-        <Text style={styles.heading}>Welcome back.</Text>
-        <Text style={styles.body}>Missing days happens. You're here now — that's what matters.</Text>
-        <Text style={styles.body}>How do you want to restart?</Text>
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+    );
+  };
 
-        <View style={styles.options}>
-          <Pressable style={styles.optionCard} onPress={() => handleOption('continue')}>
-            <Text style={styles.optionTitle}>Continue as usual</Text>
-            <Text style={styles.optionDesc}>
-              Keep all {active.length} routine{active.length !== 1 ? 's' : ''} active and check in normally.
-            </Text>
+  const handleStart = () => {
+    if (selectedIds.length === 0) return;
+    enterReducedMode(selectedIds);
+    router.back();
+  };
+
+  // ─── Step: Select routines ───────────────────────────────────────────────
+  if (step === 'select') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Pressable onPress={() => setStep('entry')}>
+            <Text style={styles.backBtn}>‹ Back</Text>
           </Pressable>
-
-          <Pressable style={styles.optionCard} onPress={() => handleOption('minimum')}>
-            <Text style={styles.optionTitle}>Just one routine today</Text>
-            <Text style={styles.optionDesc}>Check only one routine today. Low bar, easy win.</Text>
-          </Pressable>
-
-          {active.length > 2 && (
-            <Pressable style={styles.optionCard} onPress={() => handleOption('reduce')}>
-              <Text style={styles.optionTitle}>Reduce routine load</Text>
-              <Text style={styles.optionDesc}>Archive down to 2 routines so it feels lighter to start again.</Text>
-            </Pressable>
-          )}
         </View>
 
-        <Pressable style={styles.dismissBtn} onPress={() => router.back()}>
-          <Text style={styles.dismissText}>Maybe later</Text>
+        <ScrollView contentContainerStyle={styles.scroll}>
+          <Text style={styles.h2}>{s.select_title}</Text>
+          <Text style={styles.sub}>{s.select_sub}</Text>
+
+          <View style={styles.list}>
+            {activeRoutines.map((r) => {
+              const selected = selectedIds.includes(r.id);
+              return (
+                <Pressable
+                  key={r.id}
+                  style={[styles.routineRow, selected && styles.routineRowSelected]}
+                  onPress={() => toggleSelect(r.id)}
+                >
+                  <View style={[styles.checkbox, selected && styles.checkboxActive]}>
+                    {selected && <Text style={styles.checkMark}>✓</Text>}
+                  </View>
+                  <Text style={[styles.routineName, selected && styles.routineNameSelected]}>
+                    {r.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Pressable
+            style={[styles.primaryBtn, selectedIds.length === 0 && styles.btnDisabled]}
+            onPress={handleStart}
+          >
+            <Text style={styles.primaryBtnText}>{s.select_btn}</Text>
+          </Pressable>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // ─── Step: Entry ─────────────────────────────────────────────────────────
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()}>
+          <Text style={styles.closeBtn}>✕</Text>
         </Pressable>
+      </View>
+
+      <View style={styles.entryContent}>
+        <Text style={styles.emoji}>🌱</Text>
+        <Text style={styles.h1}>{s.entry_title}</Text>
+        <Text style={styles.bodyText}>{s.entry_body}</Text>
+
+        <View style={styles.actions}>
+          <Pressable style={styles.primaryBtn} onPress={handleGoToSelect}>
+            <Text style={styles.primaryBtnText}>{s.entry_btn_reduced}</Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.secondaryBtn}
+            onPress={() => { router.back(); }}
+          >
+            <Text style={styles.secondaryBtnText}>{s.entry_btn_full}</Text>
+          </Pressable>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -61,18 +131,61 @@ export default function RecoveryModal() {
 function makeStyles(c: AppColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
-    inner: { flex: 1, paddingHorizontal: spacing.xl, paddingTop: spacing.xxl, paddingBottom: spacing.xl },
-    emoji: { fontSize: 40, marginBottom: spacing.md },
-    heading: { ...typography.h1, color: c.text, marginBottom: spacing.md },
-    body: { ...typography.body, color: c.textSecondary, lineHeight: 24, marginBottom: spacing.sm },
-    options: { gap: spacing.sm, marginTop: spacing.xl },
-    optionCard: {
-      backgroundColor: c.surface, borderRadius: radius.md,
-      borderWidth: 1, borderColor: c.border, padding: spacing.md,
+    header: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg, alignItems: 'flex-end' },
+    backBtn: { ...typography.body, color: c.primary },
+    closeBtn: { fontSize: 18, color: c.textSecondary, padding: spacing.xs },
+    scroll: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl },
+
+    // Entry
+    entryContent: {
+      flex: 1, paddingHorizontal: spacing.xl,
+      paddingTop: spacing.xxl, alignItems: 'center',
     },
-    optionTitle: { ...typography.body, color: c.text, fontWeight: '600', marginBottom: spacing.xs },
-    optionDesc: { ...typography.caption, color: c.textSecondary, lineHeight: 18 },
-    dismissBtn: { marginTop: 'auto', alignItems: 'center', paddingVertical: spacing.md },
-    dismissText: { ...typography.body, color: c.textSecondary },
+    emoji: { fontSize: 48, marginBottom: spacing.lg },
+    h1: {
+      ...typography.h2, color: c.text, textAlign: 'center',
+      lineHeight: 36, marginBottom: spacing.md,
+    },
+    bodyText: {
+      ...typography.body, color: c.textSecondary,
+      textAlign: 'center', lineHeight: 22, marginBottom: spacing.xxl,
+    },
+    actions: { width: '100%', gap: spacing.sm },
+
+    // Select
+    h2: { ...typography.h3, color: c.text, marginTop: spacing.lg, marginBottom: spacing.xs },
+    sub: { ...typography.body, color: c.textSecondary, marginBottom: spacing.lg },
+    list: { gap: spacing.sm, marginBottom: spacing.xl },
+    routineRow: {
+      flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+      backgroundColor: c.surface, borderRadius: radius.md,
+      borderWidth: 1, borderColor: c.border,
+      paddingVertical: spacing.md, paddingHorizontal: spacing.md,
+    },
+    routineRowSelected: { borderColor: c.primary },
+    checkbox: {
+      width: 24, height: 24, borderRadius: 4,
+      borderWidth: 1.5, borderColor: c.textSecondary,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    checkboxActive: { backgroundColor: c.primary, borderColor: c.primary },
+    checkMark: { color: c.background, fontSize: 13, fontWeight: '700' },
+    routineName: { ...typography.body, color: c.text, flex: 1 },
+    routineNameSelected: { color: c.primary, fontWeight: '600' },
+
+    // Buttons
+    primaryBtn: {
+      backgroundColor: c.primary, borderRadius: radius.md,
+      paddingVertical: spacing.md + 2, alignItems: 'center',
+    },
+    btnDisabled: { backgroundColor: c.muted },
+    primaryBtnText: { ...typography.body, color: c.background, fontWeight: '600' },
+    secondaryBtn: {
+      borderRadius: radius.md, paddingVertical: spacing.md + 2,
+      alignItems: 'center', borderWidth: 1, borderColor: c.border,
+    },
+    secondaryBtnText: { ...typography.body, color: c.text },
+    ghostBtn: { paddingVertical: spacing.md, alignItems: 'center' },
+    ghostBtnText: { ...typography.body, color: c.textSecondary },
   });
 }

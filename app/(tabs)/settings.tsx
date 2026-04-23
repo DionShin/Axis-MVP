@@ -1,7 +1,8 @@
-import { View, Text, StyleSheet, Pressable, Switch, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Switch, ScrollView, Alert, Linking, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import { spacing, typography, radius, AppColors } from '../../src/theme';
 import { useColors } from '../../src/hooks/useColors';
 import { useThemeStore } from '../../src/store/themeStore';
@@ -11,6 +12,9 @@ import { useRoutineStore } from '../../src/store/routineStore';
 import { supabase } from '../../src/lib/supabase';
 import { scheduleAllReminders, cancelAllReminders, requestNotificationPermission } from '../../src/lib/notifications';
 import { TimePicker } from '../../src/components/TimePicker';
+import { useLanguageStore } from '../../src/store/languageStore';
+import { useStrings } from '../../src/hooks/useStrings';
+import { Language } from '../../src/i18n/strings';
 
 function format12h(time: string): string {
   const [hStr, mStr] = time.split(':');
@@ -48,8 +52,19 @@ export default function SettingsScreen() {
   const { setUser } = useAuthStore();
   const { setRoutines, setTodayChecks } = useRoutineStore();
 
+  const { language, setLanguage } = useLanguageStore();
+  const allStrings = useStrings();
+  const s = allStrings.settings;
+
   const notifEnabled = reminderTimes.length > 0;
   const [pickerValue, setPickerValue] = useState('21:00');
+  const [permissionGranted, setPermissionGranted] = useState(true);
+
+  useEffect(() => {
+    Notifications.getPermissionsAsync().then(({ status }) => {
+      setPermissionGranted(status === 'granted');
+    });
+  }, []);
 
   const handleToggleNotif = async (value: boolean) => {
     if (value) {
@@ -85,17 +100,17 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Settings</Text>
+        <Text style={styles.title}>{s.title}</Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
-        <Text style={styles.sectionLabel}>Notifications</Text>
+        <Text style={styles.sectionLabel}>{s.section_notifications}</Text>
         <View style={styles.card}>
           <SettingRow
             c={c}
-            label="Nightly reminder"
-            sublabel="A short nudge to check your routines"
+            label={s.nightly_reminder}
+            sublabel={s.nightly_reminder_sub}
             right={
               <Switch
                 value={notifEnabled}
@@ -106,6 +121,21 @@ export default function SettingsScreen() {
             }
           />
 
+          {notifEnabled && !permissionGranted && (
+            <Pressable
+              style={styles.permissionBanner}
+              onPress={() => {
+                if (Platform.OS === 'ios') {
+                  Linking.openURL('app-settings:');
+                } else {
+                  Linking.openSettings();
+                }
+              }}
+            >
+              <Text style={styles.permissionBannerText}>{s.permission_banner}</Text>
+            </Pressable>
+          )}
+
           {notifEnabled && (
             <View style={styles.reminderSection}>
               <View style={styles.pickerWrapper}>
@@ -113,12 +143,11 @@ export default function SettingsScreen() {
               </View>
 
               <Pressable style={styles.addButton} onPress={handleAdd}>
-                <Text style={styles.addButtonText}>+ Add reminder</Text>
+                <Text style={styles.addButtonText}>{s.add_reminder}</Text>
               </Pressable>
 
               {reminderTimes.length > 0 && (
                 <View style={styles.timeList}>
-                  <Text style={styles.timeListLabel}>Scheduled</Text>
                   {reminderTimes.map((t) => (
                     <View key={t} style={styles.timeRow}>
                       <Text style={styles.timeRowText}>{format12h(t)}</Text>
@@ -133,11 +162,33 @@ export default function SettingsScreen() {
           )}
         </View>
 
-        <Text style={styles.sectionLabel}>Appearance</Text>
+        <Text style={styles.sectionLabel}>{s.section_nudges}</Text>
         <View style={styles.card}>
           <SettingRow
             c={c}
-            label="Dark mode"
+            label={s.nudges_row}
+            sublabel={s.nudges_row_sub}
+            right={<Text style={{ color: c.muted, fontSize: 18 }}>›</Text>}
+            onPress={() => router.push('/modal/nudges')}
+          />
+        </View>
+
+        <Text style={styles.sectionLabel}>{s.section_share}</Text>
+        <View style={styles.card}>
+          <SettingRow
+            c={c}
+            label={s.share_row}
+            sublabel={s.share_row_sub}
+            right={<Text style={{ color: c.muted, fontSize: 18 }}>›</Text>}
+            onPress={() => router.push('/modal/share-pathway')}
+          />
+        </View>
+
+        <Text style={styles.sectionLabel}>{s.section_appearance}</Text>
+        <View style={styles.card}>
+          <SettingRow
+            c={c}
+            label={s.dark_mode}
             right={
               <Switch
                 value={darkMode}
@@ -149,17 +200,34 @@ export default function SettingsScreen() {
           />
         </View>
 
-        <Text style={styles.sectionLabel}>Account</Text>
+        <Text style={styles.sectionLabel}>{s.section_language}</Text>
+        <View style={styles.card}>
+          <View style={styles.languageRow}>
+            {(['ko', 'en'] as Language[]).map((lang) => (
+              <Pressable
+                key={lang}
+                style={[styles.langBtn, language === lang && styles.langBtnActive]}
+                onPress={() => setLanguage(lang)}
+              >
+                <Text style={[styles.langBtnText, language === lang && styles.langBtnTextActive]}>
+                  {lang === 'ko' ? '한국어' : 'English'}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        <Text style={styles.sectionLabel}>{s.section_account}</Text>
         <View style={styles.card}>
           <SettingRow
             c={c}
-            label="Sign out"
+            label={s.sign_out}
             danger
             onPress={() =>
-              Alert.alert('Sign out', 'Sign out of your account?', [
-                { text: 'Cancel', style: 'cancel' },
+              Alert.alert(s.sign_out_confirm_title, s.sign_out_confirm_msg, [
+                { text: s.cancel, style: 'cancel' },
                 {
-                  text: 'Sign out',
+                  text: s.sign_out_confirm_ok,
                   style: 'destructive',
                   onPress: async () => {
                     await supabase.auth.signOut();
@@ -174,7 +242,18 @@ export default function SettingsScreen() {
           />
         </View>
 
-        <Text style={styles.version}>Axis MVP · v1.0.0</Text>
+        <Text style={styles.sectionLabel}>{s.section_legal}</Text>
+        <View style={styles.card}>
+          <SettingRow
+            c={c}
+            label={allStrings.privacy.settings_row}
+            sublabel={allStrings.privacy.settings_row_sub}
+            right={<Text style={{ color: c.muted, fontSize: 18 }}>›</Text>}
+            onPress={() => router.push('/modal/privacy')}
+          />
+        </View>
+
+        <Text style={styles.version}>{s.version}</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -195,6 +274,12 @@ function makeStyles(c: AppColors) {
       backgroundColor: c.surface, borderRadius: radius.md,
       borderWidth: 1, borderColor: c.border, overflow: 'hidden',
     },
+    permissionBanner: {
+      marginHorizontal: spacing.md, marginTop: spacing.sm,
+      backgroundColor: '#fef3c7', borderRadius: radius.sm,
+      borderWidth: 1, borderColor: '#f59e0b', padding: spacing.sm,
+    },
+    permissionBannerText: { ...typography.caption, color: '#92400e' },
     reminderSection: { paddingHorizontal: spacing.md, paddingVertical: spacing.md },
     pickerWrapper: { alignItems: 'center', marginVertical: spacing.sm },
     addButton: {
@@ -212,6 +297,17 @@ function makeStyles(c: AppColors) {
     },
     timeRowText: { ...typography.body, color: c.text, fontWeight: '500' },
     removeText: { color: c.textSecondary, fontSize: 14, fontWeight: '600' },
+    languageRow: {
+      flexDirection: 'row', padding: spacing.md, gap: spacing.sm,
+    },
+    langBtn: {
+      flex: 1, paddingVertical: spacing.sm, borderRadius: radius.sm,
+      borderWidth: 1, borderColor: c.border, alignItems: 'center',
+      backgroundColor: c.surface,
+    },
+    langBtnActive: { borderColor: c.primary, backgroundColor: c.primary },
+    langBtnText: { ...typography.body, color: c.textSecondary, fontWeight: '500' },
+    langBtnTextActive: { color: c.background, fontWeight: '600' },
     version: { ...typography.small, color: c.muted, textAlign: 'center', marginTop: spacing.xxl },
   });
 }

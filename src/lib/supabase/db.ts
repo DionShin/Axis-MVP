@@ -14,6 +14,8 @@ export async function fetchProfile(userId: string): Promise<User | null> {
 }
 
 export async function upsertProfile(patch: Partial<User> & { id: string }): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user || session.user.id !== patch.id) return;
   await supabase.from('profiles').upsert(patch);
 }
 
@@ -44,7 +46,9 @@ export async function insertRoutine(
 }
 
 export async function patchRoutine(id: string, patch: Partial<Routine>): Promise<void> {
-  await supabase.from('routines').update(patch).eq('id', id);
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) return;
+  await supabase.from('routines').update(patch).eq('id', id).eq('user_id', session.user.id);
 }
 
 // ─── Checks ─────────────────────────────────────────────────────────────────

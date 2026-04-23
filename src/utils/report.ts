@@ -2,6 +2,19 @@ import { Routine, RoutineCheck } from '../types';
 import { completionRate } from './history';
 import { getWeekRange, getMonthRange, dateRange, toDateString } from '../lib/date';
 
+interface ReportLabels {
+  weekly: string;
+  monthly: string;
+  insight_no_routines: string;
+  insight_pattern_weekday: string;
+  insight_pattern_too_many: (count: number) => string;
+  insight_pattern_restarted: (count: number) => string;
+  insight_pattern_consistent: (name: string, period: string) => string;
+  insight_next_reduce: (name: string) => string;
+  insight_next_add_more: (count: number) => string;
+  insight_next_add_complementary: (name: string) => string;
+}
+
 export interface RoutineInsight {
   bestRoutine: Routine | null;
   worstRoutine: Routine | null;
@@ -28,7 +41,8 @@ function weekendDates(dates: string[]): string[] {
 export function generateInsight(
   routines: Routine[],
   checks: RoutineCheck[],
-  period: 'weekly' | 'monthly'
+  period: 'weekly' | 'monthly',
+  labels: ReportLabels
 ): RoutineInsight {
   const now = new Date();
   const range =
@@ -46,7 +60,7 @@ export function generateInsight(
       bestRate: 0,
       worstRate: 0,
       patterns: [],
-      nextAction: 'Create your first routine to start seeing insights.',
+      nextAction: labels.insight_no_routines,
     };
   }
 
@@ -70,41 +84,33 @@ export function generateInsight(
     (r) => r.weekdayRate - r.weekendRate > 0.3
   );
   if (weekdayWeekendDiff.length > 0) {
-    patterns.push(
-      `You tend to keep routines better on weekdays than weekends.`
-    );
+    patterns.push(labels.insight_pattern_weekday);
   }
 
   // Pattern: too many active routines
   if (active.length > 4) {
-    patterns.push(
-      `You have ${active.length} active routines. Reducing to 3–4 may improve consistency.`
-    );
+    patterns.push(labels.insight_pattern_too_many(active.length));
   }
 
   // Pattern: restarted routines
   const restarted = routines.filter((r) => r.restarted_at !== null);
   if (restarted.length > 0) {
-    patterns.push(
-      `You've restarted ${restarted.length} routine${restarted.length > 1 ? 's' : ''}. Restarts are progress, not failure.`
-    );
+    patterns.push(labels.insight_pattern_restarted(restarted.length));
   }
 
   // Pattern: best routine consistent
   if (best.rate >= 0.8) {
-    patterns.push(
-      `"${best.routine.name}" has been your most consistent routine this ${period === 'weekly' ? 'week' : 'month'}.`
-    );
+    patterns.push(labels.insight_pattern_consistent(best.routine.name, period === 'weekly' ? labels.weekly : labels.monthly));
   }
 
   // Next action
   let nextAction: string | null = null;
   if (worst.rate < 0.3 && worst.routine.id !== best.routine.id) {
-    nextAction = `Consider reducing or adjusting "${worst.routine.name}" — it's been hard to keep up.`;
+    nextAction = labels.insight_next_reduce(worst.routine.name);
   } else if (active.length < 2) {
-    nextAction = `You only have ${active.length} active routine. Adding one more could build momentum.`;
+    nextAction = labels.insight_next_add_more(active.length);
   } else if (best.rate >= 0.9) {
-    nextAction = `"${best.routine.name}" is going strong. Consider adding a complementary routine.`;
+    nextAction = labels.insight_next_add_complementary(best.routine.name);
   }
 
   return {
@@ -118,11 +124,11 @@ export function generateInsight(
 }
 
 export function daysSinceLastCheck(checks: RoutineCheck[]): number {
-  if (checks.length === 0) return 999;
+  if (checks.length === 0) return 0;
   const sorted = [...checks]
     .filter((c) => c.checked)
     .sort((a, b) => b.date.localeCompare(a.date));
-  if (sorted.length === 0) return 999;
+  if (sorted.length === 0) return 0;
   const last = new Date(sorted[0].date + 'T00:00:00');
   const now = new Date();
   now.setHours(0, 0, 0, 0);

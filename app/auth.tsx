@@ -5,12 +5,14 @@ import { router } from 'expo-router';
 import { supabase } from '../src/lib/supabase';
 import { spacing, typography, radius, AppColors } from '../src/theme';
 import { useColors } from '../src/hooks/useColors';
+import { useStrings } from '../src/hooks/useStrings';
 
 type Mode = 'signin' | 'signup';
 
 export default function AuthScreen() {
   const c = useColors();
   const styles = makeStyles(c);
+  const s = useStrings().auth;
 
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
@@ -18,23 +20,38 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const MIN_PASSWORD_LENGTH = 8;
+
   const handleSubmit = async () => {
     setError(null);
-    if (!email.trim() || !password.trim()) {
-      setError('Please enter your email and password.');
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
+      setError(s.err_empty);
       return;
     }
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      setError(s.err_email);
+      return;
+    }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(s.err_password);
+      return;
+    }
+
     setLoading(true);
     try {
       if (mode === 'signup') {
-        const { error: signUpError } = await supabase.auth.signUp({ email, password });
+        const { error: signUpError } = await supabase.auth.signUp({ email: trimmedEmail, password });
         if (signUpError) throw signUpError;
       } else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email: trimmedEmail, password });
         if (signInError) throw signInError;
       }
-    } catch (e: any) {
-      setError(e.message ?? 'Something went wrong.');
+    } catch {
+      // Intentionally vague — don't leak whether email exists
+      setError(mode === 'signup' ? s.err_signup : s.err_signin);
     } finally {
       setLoading(false);
     }
@@ -49,13 +66,13 @@ export default function AuthScreen() {
         <View style={styles.header}>
           <Text style={styles.wordmark}>Axis</Text>
           <Text style={styles.subtitle}>
-            {mode === 'signin' ? 'Sign in to continue.' : 'Create your account.'}
+            {mode === 'signin' ? s.signin_subtitle : s.signup_subtitle}
           </Text>
         </View>
 
         <View style={styles.form}>
           <View style={styles.field}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>{s.email_label}</Text>
             <TextInput
               style={styles.input}
               value={email}
@@ -65,19 +82,21 @@ export default function AuthScreen() {
               autoComplete="email"
               placeholder="you@example.com"
               placeholderTextColor={c.muted}
+              maxLength={254}
             />
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Password</Text>
+            <Text style={styles.label}>{s.password_label}</Text>
             <TextInput
               style={styles.input}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
               autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-              placeholder="••••••••"
+              placeholder={s.password_placeholder}
               placeholderTextColor={c.muted}
+              maxLength={128}
             />
           </View>
 
@@ -87,17 +106,17 @@ export default function AuthScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>{mode === 'signin' ? 'Sign in' : 'Sign up'}</Text>
+              <Text style={styles.buttonText}>{mode === 'signin' ? s.signin_btn : s.signup_btn}</Text>
             )}
           </Pressable>
         </View>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
+            {mode === 'signin' ? s.switch_to_signup : s.switch_to_signin}
           </Text>
           <Pressable onPress={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(null); }}>
-            <Text style={styles.footerLink}>{mode === 'signin' ? 'Sign up' : 'Sign in'}</Text>
+            <Text style={styles.footerLink}>{mode === 'signin' ? s.switch_signup_link : s.switch_signin_link}</Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>

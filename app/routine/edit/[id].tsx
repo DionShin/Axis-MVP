@@ -5,11 +5,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { spacing, typography, radius, AppColors } from '../../../src/theme';
 import { useColors } from '../../../src/hooks/useColors';
 import { useRoutineStore } from '../../../src/store/routineStore';
+import { useStrings } from '../../../src/hooks/useStrings';
 import { CategoryPicker } from '../../../src/components/CategoryPicker';
 
 export default function RoutineEdit() {
   const c = useColors();
   const styles = makeStyles(c);
+  const allStrings = useStrings();
+  const s = allStrings.edit_routine;
   const { id } = useLocalSearchParams<{ id: string }>();
   const { routines, updateRoutine } = useRoutineStore();
   const routine = routines.find((r) => r.id === id);
@@ -22,11 +25,11 @@ export default function RoutineEdit() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <Pressable onPress={() => router.back()}>
-            <Text style={styles.cancel}>Cancel</Text>
+            <Text style={styles.cancel}>{s.cancel}</Text>
           </Pressable>
         </View>
         <View style={styles.center}>
-          <Text style={styles.notFound}>Routine not found.</Text>
+          <Text style={styles.notFound}>{allStrings.routine.not_found}</Text>
         </View>
       </SafeAreaView>
     );
@@ -34,7 +37,7 @@ export default function RoutineEdit() {
 
   const handleSave = () => {
     const trimmed = name.trim();
-    if (!trimmed) return;
+    if (!trimmed || trimmed.length > 50) return;
     updateRoutine(id, { name: trimmed, category });
     router.back();
   };
@@ -44,16 +47,16 @@ export default function RoutineEdit() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <Pressable onPress={() => router.back()}>
-            <Text style={styles.cancel}>Cancel</Text>
+            <Text style={styles.cancel}>{s.cancel}</Text>
           </Pressable>
-          <Text style={styles.title}>Edit routine</Text>
+          <Text style={styles.title}>{s.title}</Text>
           <Pressable onPress={handleSave}>
-            <Text style={[styles.save, !name.trim() && styles.saveDisabled]}>Save</Text>
+            <Text style={[styles.save, !name.trim() && styles.saveDisabled]}>{s.save}</Text>
           </Pressable>
         </View>
 
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <Text style={styles.label}>Name</Text>
+          <Text style={styles.label}>{s.label_name}</Text>
           <TextInput
             style={styles.input}
             value={name}
@@ -61,9 +64,10 @@ export default function RoutineEdit() {
             autoFocus
             returnKeyType="done"
             placeholderTextColor={c.textSecondary}
+            maxLength={50}
           />
 
-          <Text style={styles.label}>Category</Text>
+          <Text style={styles.label}>{s.label_category}</Text>
           <CategoryPicker selected={category} onChange={setCategory} />
         </ScrollView>
       </SafeAreaView>

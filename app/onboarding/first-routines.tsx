@@ -7,13 +7,29 @@ import { useColors } from '../../src/hooks/useColors';
 import { useOnboardingStore } from '../../src/store/onboardingStore';
 import { DEFAULT_ROUTINES, MAX_ONBOARDING_ROUTINES } from '../../src/constants';
 
+function getSortedRoutines(goalCategory: string | null) {
+  if (!goalCategory) return DEFAULT_ROUTINES;
+  return [
+    ...DEFAULT_ROUTINES.filter((r) => r.category === goalCategory),
+    ...DEFAULT_ROUTINES.filter((r) => r.category !== goalCategory),
+  ];
+}
+
+function getSubtitle(mainDifficulty: string | null): string {
+  if (mainDifficulty === 'starting') return 'Start simple — pick 1 or 2 you can do daily.';
+  if (mainDifficulty === 'restarting') return 'Pick the easiest ones first. Small wins matter.';
+  return 'Start with 1–3. You can always add more later.';
+}
+
 export default function OnboardingFirstRoutines() {
   const c = useColors();
   const styles = makeStyles(c);
-  const { selectedRoutineNames, toggleRoutine } = useOnboardingStore();
+  const { selectedRoutineNames, toggleRoutine, goalCategory, mainDifficulty } = useOnboardingStore();
   const [customInput, setCustomInput] = useState('');
   const canContinue = selectedRoutineNames.length > 0;
   const atMax = selectedRoutineNames.length >= MAX_ONBOARDING_ROUTINES;
+
+  const sortedRoutines = getSortedRoutines(goalCategory);
 
   const handleAddCustom = () => {
     const trimmed = customInput.trim();
@@ -26,11 +42,11 @@ export default function OnboardingFirstRoutines() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.heading}>Pick your first routines.</Text>
-        <Text style={styles.sub}>Start with 1–3. You can always add more later.</Text>
+        <Text style={styles.sub}>{getSubtitle(mainDifficulty)}</Text>
       </View>
 
       <View style={styles.list}>
-        {DEFAULT_ROUTINES.map((r) => {
+        {sortedRoutines.map((r) => {
           const selected = selectedRoutineNames.includes(r.name);
           const disabled = atMax && !selected;
           return (
