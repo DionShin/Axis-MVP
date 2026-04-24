@@ -1,5 +1,18 @@
 import { Routine, RoutineCheck } from '../../../types';
 import { PathwayEvent } from './pathway.types';
+import { strings, Language } from '../../../i18n/strings';
+
+interface PathwayLabels {
+  event_started: (name: string) => string;
+  event_stopped: (name: string) => string;
+  event_restarted: (name: string) => string;
+  event_milestone: (name: string, days: number) => string;
+  event_gap: (days: number) => string;
+  event_gap_since: (date: string) => string;
+  event_recovery: string;
+  event_recovery_sub: (days: number) => string;
+  date_locale: string;
+}
 
 const MILESTONE_DAYS = [7, 14, 30];
 const INACTIVITY_THRESHOLD = 3;
@@ -9,49 +22,46 @@ function datesBetween(a: string, b: string): number {
   return Math.floor(diff / (1000 * 60 * 60 * 24));
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string, locale: string): string {
   const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+  return d.toLocaleDateString(locale, { month: 'long', day: 'numeric' });
 }
 
 /** routine_added / routine_stopped / routine_restarted */
-function getRoutineLifecycleEvents(routines: Routine[]): PathwayEvent[] {
+function getRoutineLifecycleEvents(routines: Routine[], pw: PathwayLabels): PathwayEvent[] {
   const events: PathwayEvent[] = [];
 
   for (const r of routines) {
-    // Added
     const addedDate = r.created_at.split('T')[0];
     events.push({
       id: `added-${r.id}`,
       type: 'routine_added',
       date: addedDate,
-      title: `'${r.name}' 루틴 시작`,
-      subtitle: formatDate(addedDate),
+      title: pw.event_started(r.name),
+      subtitle: formatDate(addedDate, pw.date_locale),
       routineName: r.name,
     });
 
-    // Stopped
     if (r.archived_at) {
       const stoppedDate = r.archived_at.split('T')[0];
       events.push({
         id: `stopped-${r.id}`,
         type: 'routine_stopped',
         date: stoppedDate,
-        title: `'${r.name}' 루틴 중단`,
-        subtitle: formatDate(stoppedDate),
+        title: pw.event_stopped(r.name),
+        subtitle: formatDate(stoppedDate, pw.date_locale),
         routineName: r.name,
       });
     }
 
-    // Restarted
     if (r.restarted_at) {
       const restartedDate = r.restarted_at.split('T')[0];
       events.push({
         id: `restarted-${r.id}`,
         type: 'routine_restarted',
         date: restartedDate,
-        title: `'${r.name}' 다시 시작`,
-        subtitle: formatDate(restartedDate),
+        title: pw.event_restarted(r.name),
+        subtitle: formatDate(restartedDate, pw.date_locale),
         routineName: r.name,
       });
     }
@@ -61,7 +71,7 @@ function getRoutineLifecycleEvents(routines: Routine[]): PathwayEvent[] {
 }
 
 /** continuity_milestone: first time a routine hits 7/14/30 day streak */
-function getMilestoneEvents(routines: Routine[], checks: RoutineCheck[]): PathwayEvent[] {
+function getMilestoneEvents(routines: Routine[], checks: RoutineCheck[], pw: PathwayLabels): PathwayEvent[] {
   const events: PathwayEvent[] = [];
 
   for (const r of routines) {
@@ -86,8 +96,8 @@ function getMilestoneEvents(routines: Routine[], checks: RoutineCheck[]): Pathwa
             id: `milestone-${r.id}-${m}`,
             type: 'continuity_milestone',
             date: checkedDates[i],
-            title: `'${r.name}' ${m}일 연속 달성`,
-            subtitle: formatDate(checkedDates[i]),
+            title: pw.event_milestone(r.name, m),
+            subtitle: formatDate(checkedDates[i], pw.date_locale),
             routineName: r.name,
           });
         }
@@ -99,7 +109,7 @@ function getMilestoneEvents(routines: Routine[], checks: RoutineCheck[]): Pathwa
 }
 
 /** inactivity_gap + recovery_started: gaps >= 3 days in overall check history */
-function getGapEvents(checks: RoutineCheck[]): PathwayEvent[] {
+function getGapEvents(checks: RoutineCheck[], pw: PathwayLabels): PathwayEvent[] {
   const events: PathwayEvent[] = [];
 
   const uniqueDates = [
@@ -115,15 +125,15 @@ function getGapEvents(checks: RoutineCheck[]): PathwayEvent[] {
         id: `gap-${uniqueDates[i - 1]}`,
         type: 'inactivity_gap',
         date: uniqueDates[i - 1],
-        title: `${gap}일 공백`,
-        subtitle: `${formatDate(uniqueDates[i - 1])} 이후`,
+        title: pw.event_gap(gap),
+        subtitle: pw.event_gap_since(formatDate(uniqueDates[i - 1], pw.date_locale)),
       });
       events.push({
         id: `recovery-${uniqueDates[i]}`,
         type: 'recovery_started',
         date: uniqueDates[i],
-        title: '다시 흐름 시작',
-        subtitle: `${gap}일 이후 재개`,
+        title: pw.event_recovery,
+        subtitle: pw.event_recovery_sub(gap),
       });
     }
   }
@@ -134,15 +144,16 @@ function getGapEvents(checks: RoutineCheck[]): PathwayEvent[] {
 /** Generate all pathway events, sorted newest → oldest */
 export function generatePathwayEvents(
   routines: Routine[],
-  checks: RoutineCheck[]
+  checks: RoutineCheck[],
+  language: Language = 'ko'
 ): PathwayEvent[] {
+  const pw = strings[language].pathway;
   const all = [
-    ...getRoutineLifecycleEvents(routines),
-    ...getMilestoneEvents(routines, checks),
-    ...getGapEvents(checks),
+    ...getRoutineLifecycleEvents(routines, pw),
+    ...getMilestoneEvents(routines, checks, pw),
+    ...getGapEvents(checks, pw),
   ];
 
-  // Deduplicate by id, sort descending by date
   const seen = new Set<string>();
   return all
     .filter((e) => { if (seen.has(e.id)) return false; seen.add(e.id); return true; })

@@ -6,6 +6,7 @@ import { spacing, typography, radius, AppColors } from '../../src/theme';
 import { useColors } from '../../src/hooks/useColors';
 import { useThemeStore } from '../../src/store/themeStore';
 import { useStrings } from '../../src/hooks/useStrings';
+import { useLanguageStore } from '../../src/store/languageStore';
 import { useRoutineStore } from '../../src/store/routineStore';
 import { getLastNWeeks, getMonthDays, formatMonthLabel, today } from '../../src/lib/date';
 import { heatmapLevel, completionRate, bestStreak } from '../../src/utils/history';
@@ -41,6 +42,7 @@ export default function HistoryScreen() {
   const styles = makeStyles(c);
 
   const s = useStrings().history;
+  const { language } = useLanguageStore();
   const [tab, setTab] = useState<HistoryTab>('calendar');
   const [mode, setMode] = useState<ViewMode>('weekly');
   const { routines, checks } = useRoutineStore();
@@ -55,7 +57,7 @@ export default function HistoryScreen() {
   const paddedMonth = [...Array(firstDayOfWeek).fill(null), ...monthDays];
 
   const pathwayEvents = tab === 'pathway'
-    ? generatePathwayEvents(routines, checks)
+    ? generatePathwayEvents(routines, checks, language)
     : [];
 
   return (

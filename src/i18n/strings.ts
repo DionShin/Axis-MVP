@@ -224,6 +224,15 @@ export const strings = {
       empty_title: 'No records yet.',
       empty_sub: 'Start your routines and your journey will appear here.',
       intro: "How you've kept going and grown",
+      event_started: (name: string) => `'${name}' started`,
+      event_stopped: (name: string) => `'${name}' stopped`,
+      event_restarted: (name: string) => `'${name}' restarted`,
+      event_milestone: (name: string, days: number) => `'${name}' — ${days}-day streak`,
+      event_gap: (days: number) => `${days}-day gap`,
+      event_gap_since: (date: string) => `since ${date}`,
+      event_recovery: 'Back on track',
+      event_recovery_sub: (days: number) => `resumed after ${days} days`,
+      date_locale: 'en-US',
     },
 
     // ─── Share Card ────────────────────────────────────────────────────
@@ -484,6 +493,15 @@ export const strings = {
       empty_title: '아직 기록이 없어요.',
       empty_sub: '루틴을 시작하면 여기서 여정을 확인할 수 있어요.',
       intro: '내가 어떻게 이어오고 바꿔왔는지',
+      event_started: (name: string) => `'${name}' 루틴 시작`,
+      event_stopped: (name: string) => `'${name}' 루틴 중단`,
+      event_restarted: (name: string) => `'${name}' 다시 시작`,
+      event_milestone: (name: string, days: number) => `'${name}' ${days}일 연속 달성`,
+      event_gap: (days: number) => `${days}일 공백`,
+      event_gap_since: (date: string) => `${date} 이후`,
+      event_recovery: '다시 흐름 시작',
+      event_recovery_sub: (days: number) => `${days}일 이후 재개`,
+      date_locale: 'ko-KR',
     },
 
     // ─── Share Card ────────────────────────────────────────────────────
