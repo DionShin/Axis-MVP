@@ -310,7 +310,7 @@ export const strings = {
       nudges_row: '마음챙김 알림',
       nudges_row_sub: '하루 중 무작위로 오는 습관 알림',
       section_share: '공유',
-      share_row: '내 Pathway 공유하기',
+      share_row: '내 발자취 공유하기',
       share_row_sub: '이번 달 루틴 기록을 카드로 공유해요',
       section_appearance: '화면',
       dark_mode: '다크 모드',
@@ -329,7 +329,7 @@ export const strings = {
     history: {
       title: '히스토리',
       tab_calendar: '캘린더',
-      tab_pathway: 'Pathway',
+      tab_pathway: '발자취',
       weekly: '주간',
       monthly: '월간',
       last_weeks: (n: number) => `최근 ${n}주`,
@@ -457,7 +457,7 @@ export const strings = {
 
     // ─── Share Modal ───────────────────────────────────────────────────
     share_modal: {
-      title: '내 Pathway 공유',
+      title: '내 발자취 공유',
       share_btn: '공유하기',
       share_fail_title: '공유 실패',
       share_fail_msg: '다시 시도해주세요.',
