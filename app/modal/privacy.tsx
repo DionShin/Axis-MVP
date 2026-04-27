@@ -69,8 +69,8 @@ export default function PrivacyModal() {
         </Text>
         <Text style={styles.body}>
           {isKo
-            ? '개인정보 관련 문의: support@axis-app.com'
-            : 'Questions about privacy? Reach us at: support@axis-app.com'}
+            ? '개인정보 관련 문의는 앱 스토어 개발자 문의 기능을 이용해주세요.'
+            : 'For privacy-related questions, please use the contact option on the App Store or Google Play.'}
         </Text>
 
         <Pressable style={styles.linkBtn} onPress={() => Linking.openURL(PRIVACY_URL)}>
