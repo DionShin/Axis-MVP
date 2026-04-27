@@ -46,11 +46,11 @@ export default function RoutineEdit() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()}>
+          <Pressable onPress={() => router.back()} hitSlop={16} style={styles.cancelBtn}>
             <Text style={styles.cancel}>{s.cancel}</Text>
           </Pressable>
           <Text style={styles.title}>{s.title}</Text>
-          <Pressable onPress={handleSave}>
+          <Pressable onPress={handleSave} hitSlop={16}>
             <Text style={[styles.save, !name.trim() && styles.saveDisabled]}>{s.save}</Text>
           </Pressable>
         </View>
@@ -84,6 +84,7 @@ function makeStyles(c: AppColors) {
       borderBottomWidth: 1, borderBottomColor: c.border,
     },
     title: { ...typography.body, fontWeight: '600', color: c.text },
+    cancelBtn: { paddingVertical: 4, paddingRight: 8 },
     cancel: { ...typography.body, color: c.textSecondary },
     save: { ...typography.body, color: c.primary, fontWeight: '600' },
     saveDisabled: { color: c.muted },

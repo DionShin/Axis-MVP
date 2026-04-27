@@ -11,15 +11,13 @@ import { daysSinceLastCheck } from '../../src/utils/report';
 import { RECOVERY_TRIGGER_DAYS } from '../../src/constants';
 import { useStrings } from '../../src/hooks/useStrings';
 
-const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-
-function getWeekDays() {
+function getWeekDays(dayLabels: readonly string[]) {
   const today = new Date();
   const day = today.getDay();
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today);
     d.setDate(today.getDate() - day + i);
-    return { label: DAYS[i], isToday: i === day, date: d };
+    return { label: dayLabels[i], isToday: i === day, date: d };
   });
 }
 
@@ -30,8 +28,8 @@ function getGreeting(s: { greeting_morning: string; greeting_afternoon: string; 
   return s.greeting_evening;
 }
 
-function formatDate(date: Date) {
-  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+function formatDate(date: Date, locale: string) {
+  return date.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
 export default function HomeScreen() {
@@ -45,13 +43,13 @@ export default function HomeScreen() {
     recordReducedSuccess, exitReducedMode,
   } = useRecoveryStore();
   const s = useStrings().home;
+  const weekDays = getWeekDays(s.day_labels);
 
   const [archivedOpen, setArchivedOpen] = useState(false);
 
   const completionAnim = useRef(new Animated.Value(0)).current;
   const prevCheckedCount = useRef(0);
 
-  const weekDays = getWeekDays();
   const today = new Date().toISOString().split('T')[0];
 
   const allActiveRoutines  = routines.filter((r) => r.status === 'active');
@@ -101,7 +99,7 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.greeting}>{getGreeting(s)}</Text>
-          <Text style={styles.date}>{formatDate(new Date())}</Text>
+          <Text style={styles.date}>{formatDate(new Date(), s.date_locale)}</Text>
         </View>
 
         {/* Weekly strip */}

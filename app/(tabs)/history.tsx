@@ -18,7 +18,6 @@ type ViewMode   = 'weekly' | 'monthly';
 
 const HEATMAP_LIGHT = ['#eeeeee', '#d4d4d4', '#a3a3a3', '#6b6b6b', '#1a1a1a'];
 const HEATMAP_DARK  = ['#2a2a2a', '#3d3d3d', '#6b6b6b', '#9a9a9a', '#f0f0f0'];
-const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
 function HeatmapCell({ level, isToday }: { level: 0 | 1 | 2 | 3 | 4; isToday: boolean }) {
   const c = useColors();
@@ -105,7 +104,7 @@ export default function HistoryScreen() {
             {mode === 'weekly' ? (
               <View>
                 <View style={styles.dayLabelsRow}>
-                  {DAY_LABELS.map((d) => (
+                  {s.day_labels.map((d) => (
                     <Text key={d} style={styles.dayLabelText}>{d}</Text>
                   ))}
                 </View>
@@ -124,7 +123,7 @@ export default function HistoryScreen() {
             ) : (
               <View>
                 <View style={styles.dayLabelsRow}>
-                  {DAY_LABELS.map((d) => (
+                  {s.day_labels.map((d) => (
                     <Text key={d} style={styles.dayLabelText}>{d}</Text>
                   ))}
                 </View>

@@ -1,8 +1,10 @@
 import { Tabs } from 'expo-router';
 import { useColors } from '../../src/hooks/useColors';
+import { useStrings } from '../../src/hooks/useStrings';
 
 export default function TabLayout() {
   const c = useColors();
+  const s = useStrings();
   return (
     <Tabs
       screenOptions={{
@@ -15,10 +17,10 @@ export default function TabLayout() {
         tabBarInactiveTintColor: c.textSecondary,
       }}
     >
-      <Tabs.Screen name="home"     options={{ title: 'Home' }} />
-      <Tabs.Screen name="history"  options={{ title: 'History' }} />
-      <Tabs.Screen name="report"   options={{ title: 'Report' }} />
-      <Tabs.Screen name="settings" options={{ title: 'Settings' }} />
+      <Tabs.Screen name="home"     options={{ title: s.home.title }} />
+      <Tabs.Screen name="history"  options={{ title: s.history.title }} />
+      <Tabs.Screen name="report"   options={{ title: s.report.title }} />
+      <Tabs.Screen name="settings" options={{ title: s.settings.title }} />
     </Tabs>
   );
 }
